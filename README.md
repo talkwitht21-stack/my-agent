@@ -329,13 +329,12 @@ Flow của WebSocket HITL:
 
 | Lỗi / Triệu chứng | Nguyên nhân có thể | Cách khắc phục |
 |-------------------|--------------------|----------------|
-| **Không thể kết nối SSH** (Log báo `SSH connection deferred`) | Laptop đóng port 22, sai username/IP, hoặc chưa copy Public Key. | Chạy `ssh -i ~/.ssh/id_ed25519 user@ip` bằng tay từ Pi 5 để xem lỗi chi tiết. |
-| **Path validation failed** (Exit code 126) | LLM cố truy cập file ngoài Sandbox. | Tính năng bảo mật đang hoạt động. Nếu cần đổi Sandbox, hãy sửa `SANDBOX_ROOT` trong `.env`. |
-| **Lỗi TypeScript** | Build thất bại. | Chạy lại `npm install` và `npm run build`. |
-| **Lỗi Prisma** | Lỗi connect DB | Chạy `npx prisma db push` để sync DB. |
-| **LLM Call Failed / 429 Too Many Requests** | Groq và Gemini đều hết Quota Free. | Chờ 1-2 phút để API reset limit. Kiểm tra Dashboard của Groq/Google. |
-| **HITL Approval timed out** | Không ai nhấn Allow/Deny trong 120s. | Mặc định timeout. Lệnh tự động bị Deny để an toàn. Gửi lại yêu cầu. |
-| **Web UI hiện hình tròn đỏ (Disconnected)** | Server FastAPI bị tắt hoặc bị chặn bởi Firewall. | Đảm bảo `uvicorn` đang chạy. Mở port 8000 trên firewall Pi 5 (`sudo ufw allow 8000`). |
+| **tsc: Permission denied** | Mất quyền thực thi của các file binary trong thư mục `node_modules/.bin/` sau khi clone từ Git. | Chạy lệnh `chmod -R +x node_modules/.bin/` hoặc đơn giản là xóa `node_modules` và chạy lại `npm install`. |
+| **listen EADDRINUSE: address already in use 0.0.0.0:8000** | Port 8000 đang bị kẹt bởi một process Node.js cũ chưa tắt hẳn (Zombie process). | Tìm và diệt process đang chiếm cổng bằng lệnh: `sudo fuser -k 8000/tcp`. |
+| **crypto.randomUUID is not a function** (Lỗi UI) | Hàm này của trình duyệt yêu cầu chuẩn bảo mật HTTPS. Nếu chạy qua HTTP nội bộ (192.168.x.x), hàm này bị vô hiệu hóa. | Sử dụng hàm tạo UUID thủ công (fallback) bằng `Math.random` để thay thế cho `crypto.randomUUID` trên giao diện Web HTTP. |
+| **404 Not Found** hoặc **429 Quota Exceeded** (API LLM) | 1. Sai endpoint hoặc model không tồn tại (Ví dụ: `gemini-2.5-flash` chưa được hỗ trợ).<br>2. Hết hạn mức miễn phí (Limit: 0) với Google Gemini. | Chuyển sang sử dụng **GROQ** (model `llama-3.3-70b-versatile` là model mới nhất). Đảm bảo đặt biến môi trường `PRIMARY_LLM=groq` và `MODEL_NAME=llama-3.3-70b-versatile`. |
+| **All configured authentication methods failed** (Windows SSH) | 1. Laptop Windows chưa có Public Key của Pi 5.<br>2. Lỗi bảo mật cực đoan của OpenSSH Windows (Bad permissions): File `authorized_keys` bị cấp quyền thừa cho các user/nhóm khác. | 1. Nạp public key của Pi vào `C:\Users\Username\.ssh\authorized_keys`.<br>2. Dùng lệnh `icacls` trên Windows để gỡ toàn bộ các quyền mặc định, **chỉ giữ lại quyền cho SYSTEM** (`icacls authorized_keys /inheritance:r /grant "SYSTEM:F"`). |
+| **Web UI hiện hình tròn đỏ (Disconnected)** | Server Node.js bị tắt hoặc bị chặn bởi Firewall. | Đảm bảo `npm start` đang chạy. Mở port 8000 trên firewall Pi 5 (`sudo ufw allow 8000`). |
 
 ---
 
