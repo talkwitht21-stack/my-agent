@@ -5,18 +5,17 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getIO = exports.app = void 0;
 const fastify_1 = __importDefault(require("fastify"));
-const socket_io_1 = require("socket.io");
+const fastify_socket_io_1 = __importDefault(require("fastify-socket.io"));
 const static_1 = __importDefault(require("@fastify/static"));
 const path_1 = __importDefault(require("path"));
 const schemas_1 = require("../domain/schemas");
 exports.app = (0, fastify_1.default)({ logger: true });
 // Setup Socket.io
-let io;
-exports.app.register(async (instance) => {
-    io = new socket_io_1.Server(instance.server, {
-        cors: { origin: '*' }
-    });
-    io.on('connection', (socket) => {
+exports.app.register(fastify_socket_io_1.default, {
+    cors: { origin: '*' }
+});
+exports.app.ready().then(() => {
+    exports.app.io.on('connection', (socket) => {
         exports.app.log.info(`Socket connected: ${socket.id}`);
         socket.on('approval_response', (data) => {
             // data: { task_id, decision }
@@ -48,5 +47,5 @@ exports.app.post('/api/tasks', async (request, reply) => {
         return reply.status(400).send({ error: 'Invalid task request' });
     }
 });
-const getIO = () => io;
+const getIO = () => exports.app.io;
 exports.getIO = getIO;
