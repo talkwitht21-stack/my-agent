@@ -4,6 +4,8 @@
 >
 > Một Agent AI tự động thực thi lệnh hệ điều hành thông qua kiến trúc 3-node phân tán.
 > Hệ thống được thiết kế tối ưu cho single-user (cá nhân), với chi phí vận hành 0 đồng (sử dụng 100% Free API), tốc độ cao, tiết kiệm token và đảm bảo an toàn tuyệt đối qua cơ chế Sandbox & Risk Engine.
+>
+> 🔗 **Repository chính thức:** [https://github.com/talkwitht21-stack/my-agent](https://github.com/talkwitht21-stack/my-agent)
 
 ---
 
@@ -72,9 +74,9 @@ Hệ thống được chia làm 3 cụm (nodes) độc lập để đảm bảo 
 
 ### Bước 1: Thiết lập Gateway Node (Raspberry Pi 5)
 
-1. Clone mã nguồn:
+1. Clone mã nguồn từ GitHub:
    ```bash
-   git clone <repo-url> /opt/autonomous-os-agent
+   git clone https://github.com/talkwitht21-stack/my-agent.git /opt/autonomous-os-agent
    cd /opt/autonomous-os-agent
    ```
 2. Tạo Virtual Environment và cài dependencies:
@@ -335,4 +337,3 @@ Flow của WebSocket HITL:
 
 - **License:** MIT License. Bạn có thể tự do sửa đổi và sử dụng.
 - **Disclaimer:** Hãy hết sức cẩn thận khi cấu hình SSH keys. Không bao giờ chạy Agent bằng tài khoản `root` trên Client Node. Tác giả không chịu trách nhiệm về mọi mất mát dữ liệu do LLM sinh ra các lệnh ngoài ý muốn (dù đã có Risk Engine chặn lọc).
-"# my-agent" 
