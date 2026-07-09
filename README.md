@@ -202,10 +202,10 @@ Kiểm tra tĩnh lệnh Shell thông qua Regex list (chia làm 4 nhóm):
 
 | Tầng | Mô tả | Regex Rules ví dụ (trong `policies.py`) | Điểm | Xử lý |
 |------|-------|-----------------------------------------|------|-------|
-| **DENY** | Lệnh phá hoại, Leo thang đặc quyền | `\bsudo\b`, `\brm\s+(-\w*r\w*f)\s+/\s*$`, `\bmount\b`, `\bchmod\s+777\b` | 100 | Bị từ chối tự động. |
-| **HIGH** | Lệnh can thiệp sâu, mạng, process | `\b(curl\|wget)\b.*\|\s*(ba)?sh\b`, `\bkill\s+-9\b`, `\bsystemctl\b` | +40 | Kích hoạt HITL (ASK). |
-| **MEDIUM** | Lệnh thay đổi file, git, package | `\brm\b`, `\bpip3?\s+install\b`, `\bdocker\s+run\b` | +25 | Tùy ngữ cảnh, có thể kích hoạt HITL. |
-| **LOW** | Lệnh chỉ đọc (Read-only) | `\bls\b`, `\bcat\b`, `\bgrep\b`, `\bfind\b` | +0 | Chạy tự động (ALLOW). |
+| **DENY** | Lệnh phá hoại, Leo thang đặc quyền | `sudo`, `rm\s+(-\w*r\w*f)\s+/\s*$`, `mount`, `chmod\s+777` | 100 | Bị từ chối tự động. |
+| **HIGH** | Lệnh can thiệp sâu, mạng, process | `(curl\|wget).*\|\s*(ba)?sh`, `kill\s+-9`, `systemctl` | +40 | Kích hoạt HITL (ASK). |
+| **MEDIUM** | Lệnh thay đổi file, git, package | `rm`, `pip3?\s+install`, `docker\s+run` | +25 | Tùy ngữ cảnh, có thể kích hoạt HITL. |
+| **LOW** | Lệnh chỉ đọc (Read-only) | `ls`, `cat`, `grep`, `find` | +0 | Chạy tự động (ALLOW). |
 
 **Directory Penalty (+15 điểm):**
 Nếu lệnh chứa các thư mục nhạy cảm (`/etc`, `/boot`, `/usr`, `/root`), Risk Engine sẽ tự động cộng thêm 15 điểm.
@@ -243,9 +243,7 @@ Tiết kiệm Token (Do Gemini/Groq Free có giới hạn TPM/RPM):
 
 **`POST /api/tasks`** - Gửi task mới
 ```bash
-curl -X POST http://<IP>:8000/api/tasks \
-  -H "Content-Type: application/json" \
-  -d '{"user_message": "Kiểm tra dung lượng ổ đĩa"}'
+curl -X POST http://<IP>:8000/api/tasks   -H "Content-Type: application/json"   -d '{"user_message": "Kiểm tra dung lượng ổ đĩa"}'
 ```
 *Kết quả trả về:* JSON `TaskResult` (bao gồm Task ID, command đã chạy, risk score, stdout/stderr, và phản hồi của trợ lý).
 
