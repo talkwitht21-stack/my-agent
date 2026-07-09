@@ -1,5 +1,9 @@
 "use strict";
-const state = { ws: null, sessionId: crypto.randomUUID(), reconnectDelay: 500, pendingApproval: null, isSubmitting: false };
+function generateUUID() {
+  if (window.crypto && window.crypto.randomUUID) return window.crypto.randomUUID();
+  return Math.random().toString(36).substring(2) + Date.now().toString(36);
+}
+const state = { ws: null, sessionId: generateUUID(), reconnectDelay: 500, pendingApproval: null, isSubmitting: false };
 const $ = (id) => document.getElementById(id);
 const dom = {
   form: $("task-form"), input: $("task-input"), submitBtn: $("submit-btn"),
