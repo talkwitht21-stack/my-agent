@@ -72,20 +72,29 @@ Hệ thống được chia làm 3 cụm (nodes) độc lập để đảm bảo 
 | **Client (Laptop)** | Windows/macOS/Linux có chạy OpenSSH Server |
 | **API Keys** | Cần ít nhất 1 key: [Groq](https://console.groq.com/keys) (tốc độ cao) hoặc [Gemini](https://aistudio.google.com/app/apikey) (suy luận tốt) |
 
-### Bước 1: Thiết lập Gateway Node (Raspberry Pi 5)
+### Bước 1: Thiết lập Gateway Node (Raspberry Pi 5 / Linux)
 
 1. Clone mã nguồn từ GitHub:
    ```bash
    git clone https://github.com/talkwitht21-stack/my-agent.git /opt/autonomous-os-agent
    cd /opt/autonomous-os-agent
    ```
-2. Tạo Virtual Environment và cài dependencies:
+2. Tạo Virtual Environment (Môi trường ảo):
    ```bash
+   # Nếu máy báo thiếu package, hãy cài bằng: sudo apt update && sudo apt install python3-venv
    python3 -m venv venv
-   source venv/bin/activate
-   pip install -r requirements.txt
    ```
-3. Tạo file cấu hình `.env`:
+3. Kích hoạt môi trường ảo:
+   ```bash
+   source venv/bin/activate
+   ```
+   *(Bạn sẽ thấy chữ `(venv)` hiện lên ở đầu dòng lệnh)*
+4. Cài đặt thư viện:
+   ```bash
+   # Dùng `python -m pip` để tránh lỗi "Externally Managed Environment" (PEP-668) trên Pi 5:
+   python -m pip install -r requirements.txt
+   ```
+5. Tạo file cấu hình `.env`:
    ```bash
    cp .env.example .env
    ```
@@ -110,16 +119,17 @@ Agent sử dụng chứng thực Ed25519 (không dùng mật khẩu) để SSH.
 
 ### Bước 3: Thiết lập Sandbox trên Client Node (Laptop)
 
+Thư mục Sandbox là nơi **duy nhất** Agent được phép thực thi lệnh. Agent sẽ bị giam lỏng (confined) hoàn toàn tại đây.
+
 1. Mở terminal trên Laptop (hoặc thông qua SSH).
-2. Tạo thư mục làm Sandbox mặc định:
+2. Tạo thư mục làm Sandbox:
    ```bash
    mkdir -p ~/AI_Sandbox
    ```
-   *(Agent sẽ KHÔNG thể thao tác bất kỳ file nào nằm ngoài thư mục này)*
 
 ### Bước 4: Cấu hình biến môi trường (`.env`)
 
-Mở file `/opt/autonomous-os-agent/.env` trên Pi 5 và điền thông tin:
+Mở file `.env` trên Pi 5 và điền thông tin:
 
 ```ini
 # === LLM API Keys (Lấy miễn phí) ===
@@ -132,7 +142,9 @@ SSH_PORT=22
 SSH_USER=your_username
 SSH_KEY_PATH=~/.ssh/id_ed25519
 
-# === Sandbox (Thư mục vừa tạo ở Bước 3) ===
+# === Tùy biến Sandbox ===
+# Bạn CÓ THỂ ĐỔI thư mục mặc định sang bất kỳ đâu bạn muốn
+# Zero-Trust Validator sẽ tự động khóa mục tiêu vào thư mục này.
 SANDBOX_ROOT=~/AI_Sandbox
 
 # === LLM Settings ===
@@ -142,11 +154,24 @@ FALLBACK_LLM=gemini    # Dùng Gemini làm backup
 
 ### Bước 5: Khởi chạy Server
 
-Trên Pi 5 (đã activate venv):
+Đảm bảo bạn đã kích hoạt môi trường ảo `(venv)` trước khi chạy. Lệnh khởi động sẽ khác nhau tùy hệ điều hành:
+
+**Trên Linux / Raspberry Pi 5 / macOS:**
 ```bash
 PYTHONPATH=src python -m agent.main
 ```
-Bạn sẽ thấy log báo hiệu hệ thống đã khởi động:
+
+**Trên Windows (PowerShell):**
+```powershell
+$env:PYTHONPATH="src"; python -m agent.main
+```
+
+**Trên Windows (Command Prompt / CMD):**
+```cmd
+set PYTHONPATH=src && python -m agent.main
+```
+
+Bạn sẽ thấy log báo hiệu hệ thống đã khởi động thành công:
 ```text
 INFO | agent | SQLite database initialised at ./data/agent.db
 INFO | agent | SSH connection established to 192.168.1.100
@@ -202,10 +227,10 @@ Kiểm tra tĩnh lệnh Shell thông qua Regex list (chia làm 4 nhóm):
 
 | Tầng | Mô tả | Regex Rules ví dụ (trong `policies.py`) | Điểm | Xử lý |
 |------|-------|-----------------------------------------|------|-------|
-| **DENY** | Lệnh phá hoại, Leo thang đặc quyền | `sudo`, `rm\s+(-\w*r\w*f)\s+/\s*$`, `mount`, `chmod\s+777` | 100 | Bị từ chối tự động. |
-| **HIGH** | Lệnh can thiệp sâu, mạng, process | `(curl\|wget).*\|\s*(ba)?sh`, `kill\s+-9`, `systemctl` | +40 | Kích hoạt HITL (ASK). |
-| **MEDIUM** | Lệnh thay đổi file, git, package | `rm`, `pip3?\s+install`, `docker\s+run` | +25 | Tùy ngữ cảnh, có thể kích hoạt HITL. |
-| **LOW** | Lệnh chỉ đọc (Read-only) | `ls`, `cat`, `grep`, `find` | +0 | Chạy tự động (ALLOW). |
+| **DENY** | Lệnh phá hoại, Leo thang đặc quyền | ` sudo `, ` rm\s+(-\w*r\w*f)\s+/\s*$`, ` mount `, ` chmod\s+777 ` | 100 | Bị từ chối tự động. |
+| **HIGH** | Lệnh can thiệp sâu, mạng, process | ` (curl\|wget) .*\|\s*(ba)?sh `, ` kill\s+-9 `, ` systemctl ` | +40 | Kích hoạt HITL (ASK). |
+| **MEDIUM** | Lệnh thay đổi file, git, package | ` rm `, ` pip3?\s+install `, ` docker\s+run ` | +25 | Tùy ngữ cảnh, có thể kích hoạt HITL. |
+| **LOW** | Lệnh chỉ đọc (Read-only) | ` ls `, ` cat `, ` grep `, ` find ` | +0 | Chạy tự động (ALLOW). |
 
 **Directory Penalty (+15 điểm):**
 Nếu lệnh chứa các thư mục nhạy cảm (`/etc`, `/boot`, `/usr`, `/root`), Risk Engine sẽ tự động cộng thêm 15 điểm.
@@ -324,7 +349,9 @@ Flow của WebSocket HITL:
 | Lỗi / Triệu chứng | Nguyên nhân có thể | Cách khắc phục |
 |-------------------|--------------------|----------------|
 | **Không thể kết nối SSH** (Log báo `SSH connection deferred`) | Laptop đóng port 22, sai username/IP, hoặc chưa copy Public Key. | Chạy `ssh -i ~/.ssh/id_ed25519 user@ip` bằng tay từ Pi 5 để xem lỗi chi tiết. |
-| **Path validation failed** (Exit code 126) | LLM cố truy cập file ngoài Sandbox. | Bình thường. Tính năng bảo mật đang hoạt động. Bạn có thể yêu cầu LLM thao tác trong Sandbox. |
+| **Path validation failed** (Exit code 126) | LLM cố truy cập file ngoài Sandbox. | Tính năng bảo mật đang hoạt động. Nếu cần đổi Sandbox, hãy sửa `SANDBOX_ROOT` trong `.env`. |
+| **Lỗi 'externally managed environment'** | OS chặn `pip install` hệ thống để bảo vệ. | Ép chạy qua venv bằng lệnh: `python -m pip install -r requirements.txt` |
+| **Lỗi 'ModuleNotFoundError' (uvicorn)** | Cài đặt package bị thất bại hoặc quên bật venv. | Kích hoạt lại `source venv/bin/activate` và chạy lại `python -m pip install...` |
 | **LLM Call Failed / 429 Too Many Requests** | Groq và Gemini đều hết Quota Free. | Chờ 1-2 phút để API reset limit. Kiểm tra Dashboard của Groq/Google. |
 | **HITL Approval timed out** | Không ai nhấn Allow/Deny trong 120s. | Mặc định timeout. Lệnh tự động bị Deny để an toàn. Gửi lại yêu cầu. |
 | **Web UI hiện hình tròn đỏ (Disconnected)** | Server FastAPI bị tắt hoặc bị chặn bởi Firewall. | Đảm bảo `uvicorn` đang chạy. Mở port 8000 trên firewall Pi 5 (`sudo ufw allow 8000`). |
