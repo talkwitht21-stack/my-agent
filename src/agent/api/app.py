@@ -49,7 +49,7 @@ def create_app(settings: AppSettings) -> FastAPI:
         window_size=settings.context_window_size,
         max_tokens=settings.max_context_tokens,
     )
-    llm_switcher = LLMSwitcher(settings=settings)
+    llm_switcher = LLMSwitcher.create(settings)
     risk_engine = RiskEngine()
     audit_service = AuditService(repo=db_repo)
     hitl_manager = HITLManager()
