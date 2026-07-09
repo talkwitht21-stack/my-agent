@@ -1,5 +1,5 @@
 import fastify from 'fastify';
-import { Server } from 'socket.io';
+import fastifySocketIO from 'fastify-socket.io';
 import fastifyStatic from '@fastify/static';
 import path from 'path';
 import { config } from '../config/settings';
@@ -9,21 +9,23 @@ import { TaskOrchestrator } from '../services/orchestrator';
 export const app = fastify({ logger: true });
 
 // Setup Socket.io
-export const io = new Server(app.server, {
+app.register(fastifySocketIO, {
   cors: { origin: '*' }
 });
 
-io.on('connection', (socket) => {
-  app.log.info(`Socket connected: ${socket.id}`);
-  
-  socket.on('approval_response', (data) => {
+app.ready().then(() => {
+  app.io.on('connection', (socket) => {
+    app.log.info(`Socket connected: ${socket.id}`);
+    
+    socket.on('approval_response', (data) => {
       // data: { task_id, decision }
       if (app.hasDecorator('orchestrator')) {
         (app as any).orchestrator.handleApprovalResponse(data.task_id, data.decision);
       }
     });
 
-  socket.on('disconnect', () => app.log.info(`Socket disconnected: ${socket.id}`));
+    socket.on('disconnect', () => app.log.info(`Socket disconnected: ${socket.id}`));
+  });
 });
 
 app.register(fastifyStatic, {
@@ -51,4 +53,4 @@ app.post('/api/tasks', async (request, reply) => {
   }
 });
 
-export const getIO = () => io;
+export const getIO = () => app.io;
