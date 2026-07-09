@@ -9,24 +9,21 @@ import { TaskOrchestrator } from '../services/orchestrator';
 export const app = fastify({ logger: true });
 
 // Setup Socket.io
-let io: Server;
-app.register(async (instance) => {
-  io = new Server(instance.server, {
-    cors: { origin: '*' }
-  });
+export const io = new Server(app.server, {
+  cors: { origin: '*' }
+});
 
-  io.on('connection', (socket) => {
-    app.log.info(`Socket connected: ${socket.id}`);
-    
-    socket.on('approval_response', (data) => {
+io.on('connection', (socket) => {
+  app.log.info(`Socket connected: ${socket.id}`);
+  
+  socket.on('approval_response', (data) => {
       // data: { task_id, decision }
       if (app.hasDecorator('orchestrator')) {
         (app as any).orchestrator.handleApprovalResponse(data.task_id, data.decision);
       }
     });
 
-    socket.on('disconnect', () => app.log.info(`Socket disconnected: ${socket.id}`));
-  });
+  socket.on('disconnect', () => app.log.info(`Socket disconnected: ${socket.id}`));
 });
 
 app.register(fastifyStatic, {
