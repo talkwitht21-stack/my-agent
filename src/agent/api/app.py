@@ -50,7 +50,9 @@ def create_app(settings: AppSettings) -> FastAPI:
         max_tokens=settings.max_context_tokens,
     )
     llm_switcher = LLMSwitcher.create(settings)
-    risk_engine = RiskEngine()
+    from agent.security.policies import SecurityPolicies
+    policies = SecurityPolicies()
+    risk_engine = RiskEngine(policies=policies)
     audit_service = AuditService(repo=db_repo)
     hitl_manager = HITLManager()
     orchestrator = TaskOrchestrator(

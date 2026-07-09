@@ -43,9 +43,9 @@ class AppSettings(BaseSettings):
     context_window_size: int = Field(default=10)
 
     @property
-    def resolved_sandbox_root(self) -> Path:
-        """Expand ~ and resolve to absolute path."""
-        return Path(self.sandbox_root).expanduser().resolve()
+    def resolved_sandbox_root(self) -> str:
+        """Return the raw sandbox root string. PathValidator handles cross-platform resolution."""
+        return self.sandbox_root
 
     @property
     def resolved_database_path(self) -> Path:
