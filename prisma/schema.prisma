@@ -1,0 +1,20 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  timestamp DateTime @default(now())
+  sessionId String
+  action    String
+  command   String?
+  status    String
+  riskScore Int?
+  duration  Int?     // milliseconds
+  metadata  String?  // JSON string
+}

@@ -23,36 +23,31 @@ document.addEventListener("DOMContentLoaded", () => {
   connectWebSocket();
 });
 
-/* ── WebSocket with exponential-backoff reconnect ─── */
+/* ── Socket.io Connection ─── */
 function connectWebSocket() {
-  const proto = location.protocol === "https:" ? "wss" : "ws";
-  const ws = new WebSocket(`${proto}://${location.host}/ws/hitl`);
-  ws.addEventListener("open", () => {
-    state.reconnectDelay = 500;
+  const socket = io();
+  
+  socket.on("connect", () => {
     updateConnectionStatus(true);
-    appendMessage("system", "WebSocket connected.");
+    appendMessage("system", "Socket.io connected.");
   });
-  ws.addEventListener("message", (evt) => {
-    let data;
-    try { data = JSON.parse(evt.data); } catch { return; }
-    if (data.type === "approval_request") {
-      handleApprovalRequest(data);
-    } else if (data.type === "task_update") {
-      const label = data.status === "error" ? "error" : "result";
-      const body = data.result ? JSON.stringify(data.result, null, 2) : `Task ${data.task_id} → ${data.status}`;
-      appendMessage(label, body);
-    }
-  });
-  ws.addEventListener("close", () => { updateConnectionStatus(false); scheduleReconnect(); });
-  ws.addEventListener("error", () => ws.close());
-  state.ws = ws;
-}
 
-function scheduleReconnect() {
-  const delay = Math.min(state.reconnectDelay + Math.random() * 300, 30000);
-  appendMessage("system", `Reconnecting in ${(delay / 1000).toFixed(1)}s…`);
-  setTimeout(connectWebSocket, delay);
-  state.reconnectDelay = Math.min(state.reconnectDelay * 2, 30000);
+  socket.on("approval_request", (data) => {
+    handleApprovalRequest(data);
+  });
+
+  socket.on("task_update", (data) => {
+    const label = data.status === "error" ? "error" : "result";
+    const body = data.result ? JSON.stringify(data.result, null, 2) : `Task: ${data.message || data.status}`;
+    appendMessage(label, body);
+  });
+
+  socket.on("disconnect", () => {
+    updateConnectionStatus(false);
+    appendMessage("system", "Socket.io disconnected.");
+  });
+
+  state.ws = socket;
 }
 
 function updateConnectionStatus(connected) {
@@ -126,8 +121,8 @@ function respond(decision) {
 }
 
 function sendApprovalResponse(taskId, decision) {
-  if (state.ws && state.ws.readyState === WebSocket.OPEN) {
-    state.ws.send(JSON.stringify({ type: "approval_response", task_id: taskId, decision }));
+  if (state.ws && state.ws.connected) {
+    state.ws.emit('approval_response', { task_id: taskId, decision });
   }
 }
 
