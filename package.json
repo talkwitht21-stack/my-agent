@@ -3,7 +3,6 @@
   "version": "2.0.0",
   "description": "Autonomous OS Agent 2.0 - Zero-Trust, HITL, Dynamic LLM",
   "main": "dist/index.js",
-  "type": "module",
   "scripts": {
     "build": "tsc",
     "start": "node dist/index.js",

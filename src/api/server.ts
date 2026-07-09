@@ -2,13 +2,9 @@ import fastify from 'fastify';
 import { Server } from 'socket.io';
 import fastifyStatic from '@fastify/static';
 import path from 'path';
-import { fileURLToPath } from 'url';
 import { config } from '../config/settings';
 import { TaskRequestSchema } from '../domain/schemas';
 import { TaskOrchestrator } from '../services/orchestrator';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 export const app = fastify({ logger: true });
 
