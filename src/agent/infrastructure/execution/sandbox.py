@@ -50,9 +50,13 @@ class SandboxRuntime:
             )
 
         resolved = self._path_validator.resolve_safe(working_dir)
-        full_path = self._sandbox_root / resolved
+        full_path = resolved
 
-        sandboxed_cmd = f"cd {full_path} && {command}"
+        # For Windows CMD, cd needs the /d flag to switch drives if we provide an absolute path
+        if self._path_validator.is_windows:
+            sandboxed_cmd = f'cd /d "{full_path}" && {command}'
+        else:
+            sandboxed_cmd = f'cd "{full_path}" && {command}'
 
         logger.info(
             "Sandboxed execution in %s: %.80s",
@@ -62,6 +66,6 @@ class SandboxRuntime:
 
         return await self._ssh.execute(
             command=sandboxed_cmd,
-            working_dir=str(full_path),
+            working_dir=full_path,
             timeout=timeout,
         )
