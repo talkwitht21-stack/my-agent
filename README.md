@@ -18,7 +18,7 @@ Hệ thống được chia làm 3 cụm (nodes) độc lập để đảm bảo 
 │  ☁️  LLM Cloud    │◄──────────────────►│  🍓 Gateway Node   │
 │  (Groq / Gemini) │   Tool Calls JSON  │  (Raspberry Pi 5) │
 └──────────────────┘                     │                   │
-                                         │  FastAPI + SQLite  │
+                                         │  Fastify + Prisma  │
 ┌──────────────────┐     SSH (Ed25519)   │  Risk Engine       │
 │  💻 Client Node   │◄──────────────────►│  HITL WebSocket    │
 │  (Laptop cá nhân)│   stdout/stderr    │  Audit Logger      │
@@ -39,7 +39,7 @@ Hệ thống được chia làm 3 cụm (nodes) độc lập để đảm bảo 
    - **Bảo mật:** KHÔNG lưu bất kỳ API Key nào. KHÔNG chạy code backend. Mọi lệnh bị giam lỏng (confined) trong thư mục `~/AI_Sandbox`.
 2. **Gateway Node (Raspberry Pi 5 hoặc Server nhỏ):**
    - **Vai trò:** "Control Plane & Policy Engine".
-   - **Yêu cầu:** Chạy backend Python (FastAPI).
+   - **Yêu cầu:** Chạy backend Node.js (Fastify, TypeScript, Prisma).
    - **Nhiệm vụ:** Chứa API Keys, quản lý Web UI, kết nối LLM, chấm điểm rủi ro (Risk Engine), hiển thị HITL modal qua WebSocket, lưu Audit Log vào SQLite, và SSH xuống Client Node để chạy lệnh.
 3. **LLM Server (Cloud APIs):**
    - **Vai trò:** "Reasoning Engine".
@@ -67,8 +67,8 @@ Hệ thống được chia làm 3 cụm (nodes) độc lập để đảm bảo 
 
 | Thành phần | Yêu cầu |
 |------------|----------|
-| **Python** | Version ≥ 3.11 |
-| **Gateway (Pi 5)** | OS Linux (Raspbian, Ubuntu, Debian), có cài `git`, `python3-venv` |
+| **Node.js** | Version ≥ 18.x |
+| **Gateway (Pi 5)** | OS Linux (Raspbian, Ubuntu, Debian), có cài `git`, `node`, `npm` |
 | **Client (Laptop)** | Windows/macOS/Linux có chạy OpenSSH Server |
 | **API Keys** | Cần ít nhất 1 key: [Groq](https://console.groq.com/keys) (tốc độ cao) hoặc [Gemini](https://aistudio.google.com/app/apikey) (suy luận tốt) |
 
@@ -79,20 +79,18 @@ Hệ thống được chia làm 3 cụm (nodes) độc lập để đảm bảo 
    git clone https://github.com/talkwitht21-stack/my-agent.git /opt/autonomous-os-agent
    cd /opt/autonomous-os-agent
    ```
-2. Tạo Virtual Environment (Môi trường ảo):
+2. Cài đặt thư viện Node.js:
    ```bash
-   # Nếu máy báo thiếu package, hãy cài bằng: sudo apt update && sudo apt install python3-venv
-   python3 -m venv venv
+   npm install
    ```
-3. Kích hoạt môi trường ảo:
+3. Tạo Database bằng Prisma:
    ```bash
-   source venv/bin/activate
+   npx prisma generate
+   npx prisma db push
    ```
-   *(Bạn sẽ thấy chữ `(venv)` hiện lên ở đầu dòng lệnh)*
-4. Cài đặt thư viện:
+4. Biên dịch mã nguồn TypeScript:
    ```bash
-   # Dùng `python -m pip` để tránh lỗi "Externally Managed Environment" (PEP-668) trên Pi 5:
-   python -m pip install -r requirements.txt
+   npm run build
    ```
 5. Tạo file cấu hình `.env`:
    ```bash
@@ -148,35 +146,25 @@ SSH_KEY_PATH=~/.ssh/id_ed25519
 SANDBOX_ROOT=~/AI_Sandbox
 
 # === LLM Settings ===
-PRIMARY_LLM=groq       # Khuyên dùng Groq cho tốc độ
-FALLBACK_LLM=gemini    # Dùng Gemini làm backup
+PRIMARY_LLM=groq       # Hỗ trợ openai, groq, deepseek, gemini
+MODEL_NAME=llama3-70b-8192
+DATABASE_URL=file:./data/agent.db
 ```
 
 ### Bước 5: Khởi chạy Server
 
-Đảm bảo bạn đã kích hoạt môi trường ảo `(venv)` trước khi chạy. Lệnh khởi động sẽ khác nhau tùy hệ điều hành:
+Đảm bảo bạn đã cấu hình xong `.env` trước khi chạy.
 
-**Trên Linux / Raspberry Pi 5 / macOS:**
+**Khởi động Server:**
 ```bash
-PYTHONPATH=src python -m agent.main
+npm start
 ```
 
-**Trên Windows (PowerShell):**
-```powershell
-$env:PYTHONPATH="src"; python -m agent.main
-```
-
-**Trên Windows (Command Prompt / CMD):**
-```cmd
-set PYTHONPATH=src && python -m agent.main
-```
+*(Lưu ý: Bạn cũng có thể dùng `npm run dev` nếu đang code và muốn hot-reload).*
 
 Bạn sẽ thấy log báo hiệu hệ thống đã khởi động thành công:
 ```text
-INFO | agent | SQLite database initialised at ./data/agent.db
-INFO | agent | SSH connection established to 192.168.1.100
-INFO | agent | Frontend served from /opt/autonomous-os-agent/frontend
-INFO | agent | Starting Agent 2.0 on 0.0.0.0:8000
+INFO | Autonomous OS Agent 2.0 running at http://0.0.0.0:8000
 ```
 
 ### Bước 6: Sử dụng
@@ -239,25 +227,19 @@ Nếu lệnh chứa các thư mục nhạy cảm (`/etc`, `/boot`, `/usr`, `/roo
 - Lệnh bị giam trong khối `asyncio.wait_for(..., timeout=30)`. Tránh tình trạng LLM gọi lệnh `ping 8.8.8.8` (chạy vô hạn) làm treo hệ thống.
 - Output (stdout/stderr) bị cắt ngắn (truncate) ở mức **4096 ký tự**. Tránh tràn RAM trên Pi và tiết kiệm token khi gửi lại cho LLM.
 
-### 4. Immutable Audit Trail (`sqlite_repo.py` & `audit.py`)
+### 4. Immutable Audit Trail (Prisma & SQLite)
 Mọi hành động (nhận task, kết quả LLM, chấm điểm Risk, quyết định HITL, kết quả chạy lệnh) đều được lưu vào SQLite.
-- **Tính toàn vẹn (Integrity):** Mỗi record tự động tính `SHA-256 hash` (dựa trên TaskID, Action, Timestamp, Command) lúc khởi tạo model. Đảm bảo lịch sử không thể bị giả mạo.
+- Dùng Prisma ORM để thao tác nhanh chóng và scale tốt. Đảm bảo lịch sử các lệnh chạy rõ ràng và có thể debug dễ dàng.
 
 ---
 
 ## 🧠 Hạ tầng LLM (Dynamic Infrastructure)
 
-### 1. Dynamic LLM Switcher & Resilience (`switcher.py`)
-Hệ thống sử dụng thư viện `tenacity` để xử lý vấn đề API Free hay bị lỗi hoặc hết quota (429 Rate Limit):
-- Gọi Provider chính (Mặc định: **Groq - Llama-3.3-70b-versatile**).
-- Nếu lỗi, **thử lại (Retry) tối đa 3 lần** với Exponential Backoff (đợi 1s ➔ 2s ➔ 4s ➔ 8s).
-- Nếu cả 3 lần đều lỗi, tự động **chuyển (Failover)** sang Provider dự phòng (Mặc định: **Gemini - Gemini-2.0-flash**).
-- Ghi nhớ Provider đang hoạt động để dùng cho các request tiếp theo.
+### 1. Universal Adapter (`universal_adapter.ts`)
+Hệ thống sử dụng kiến trúc Adapter tương thích chuẩn OpenAI, dễ dàng map sang các nền tảng Free API như Groq, DeepSeek, hay Gemini.
 
-### 2. Context Compressor (`compressor.py`)
+### 2. Resilience
 Tiết kiệm Token (Do Gemini/Groq Free có giới hạn TPM/RPM):
-- Dùng cơ chế **Sliding Window**: Chỉ giữ lại `System Prompt` và `N` tin nhắn gần nhất (Mặc định `CONTEXT_WINDOW_SIZE=10`).
-- Ước lượng Token rẻ tiền bằng thuật toán `len(string) // 4`.
 - Tránh tình trạng Context phình to gây quá tải bộ nhớ LLM.
 
 ---
@@ -323,8 +305,7 @@ Flow của WebSocket HITL:
    Type=simple
    User=pi
    WorkingDirectory=/opt/autonomous-os-agent
-   Environment="PYTHONPATH=src"
-   ExecStart=/opt/autonomous-os-agent/venv/bin/python -m agent.main
+   ExecStart=/usr/bin/npm start
    Restart=always
    RestartSec=5
 
@@ -350,8 +331,8 @@ Flow của WebSocket HITL:
 |-------------------|--------------------|----------------|
 | **Không thể kết nối SSH** (Log báo `SSH connection deferred`) | Laptop đóng port 22, sai username/IP, hoặc chưa copy Public Key. | Chạy `ssh -i ~/.ssh/id_ed25519 user@ip` bằng tay từ Pi 5 để xem lỗi chi tiết. |
 | **Path validation failed** (Exit code 126) | LLM cố truy cập file ngoài Sandbox. | Tính năng bảo mật đang hoạt động. Nếu cần đổi Sandbox, hãy sửa `SANDBOX_ROOT` trong `.env`. |
-| **Lỗi 'externally managed environment'** | OS chặn `pip install` hệ thống để bảo vệ. | Ép chạy qua venv bằng lệnh: `python -m pip install -r requirements.txt` |
-| **Lỗi 'ModuleNotFoundError' (uvicorn)** | Cài đặt package bị thất bại hoặc quên bật venv. | Kích hoạt lại `source venv/bin/activate` và chạy lại `python -m pip install...` |
+| **Lỗi TypeScript** | Build thất bại. | Chạy lại `npm install` và `npm run build`. |
+| **Lỗi Prisma** | Lỗi connect DB | Chạy `npx prisma db push` để sync DB. |
 | **LLM Call Failed / 429 Too Many Requests** | Groq và Gemini đều hết Quota Free. | Chờ 1-2 phút để API reset limit. Kiểm tra Dashboard của Groq/Google. |
 | **HITL Approval timed out** | Không ai nhấn Allow/Deny trong 120s. | Mặc định timeout. Lệnh tự động bị Deny để an toàn. Gửi lại yêu cầu. |
 | **Web UI hiện hình tròn đỏ (Disconnected)** | Server FastAPI bị tắt hoặc bị chặn bởi Firewall. | Đảm bảo `uvicorn` đang chạy. Mở port 8000 trên firewall Pi 5 (`sudo ufw allow 8000`). |
