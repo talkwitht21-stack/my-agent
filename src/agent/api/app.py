@@ -102,9 +102,9 @@ def create_app(settings: AppSettings) -> FastAPI:
     frontend_dir = Path(__file__).resolve().parent.parent.parent.parent / "frontend"
     if frontend_dir.is_dir():
         app.mount(
-            "/static",
+            "/",
             StaticFiles(directory=str(frontend_dir), html=True),
-            name="static",
+            name="frontend",
         )
 
     return app
