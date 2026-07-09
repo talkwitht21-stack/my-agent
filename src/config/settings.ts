@@ -18,7 +18,7 @@ export const AppSettingsSchema = z.object({
   PRIMARY_LLM: z.enum(['openai', 'groq', 'deepseek', 'gemini']).default('groq'),
   API_KEY: z.string().min(1),
   BASE_URL: z.string().optional(),
-  MODEL_NAME: z.string().default('llama3-70b-8192')
+  MODEL_NAME: z.string().default('llama-3.3-70b-versatile')
 });
 
 export const config = AppSettingsSchema.parse(process.env);
