@@ -14,10 +14,10 @@ app.register(fastifySocketIO, {
 });
 
 app.ready().then(() => {
-  app.io.on('connection', (socket) => {
+  (app as any).io.on('connection', (socket: any) => {
     app.log.info(`Socket connected: ${socket.id}`);
     
-    socket.on('approval_response', (data) => {
+    socket.on('approval_response', (data: any) => {
       // data: { task_id, decision }
       if (app.hasDecorator('orchestrator')) {
         (app as any).orchestrator.handleApprovalResponse(data.task_id, data.decision);
@@ -53,4 +53,4 @@ app.post('/api/tasks', async (request, reply) => {
   }
 });
 
-export const getIO = () => app.io;
+export const getIO = () => (app as any).io;
