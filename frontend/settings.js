@@ -53,6 +53,7 @@ const SettingsPanel = (() => {
     // In-memory state for dynamic lists
     SettingsPanel.customProviders = [];
     SettingsPanel.projects = [];
+    SettingsPanel.providerConfigs = {};
 
     // Events
     el.gearBtn.addEventListener('click', toggle);
@@ -72,12 +73,22 @@ const SettingsPanel = (() => {
       updateModelHint();
       el.customProviderGroup.classList.toggle('hidden', el.provider.value !== '_add_custom_');
       
-      // Auto-fill if selecting an existing custom provider
-      const cp = SettingsPanel.customProviders.find(p => p.id === el.provider.value);
-      if (cp) {
-        el.apiKey.value = cp.apiKey || '';
-        el.baseUrl.value = cp.baseUrl || '';
-        el.modelName.value = cp.modelName || '';
+      // Auto-fill if selecting an existing custom provider or built-in provider
+      if (el.provider.value === '_add_custom_') {
+        // Leave as is or clear
+      } else if (el.provider.value.startsWith('custom_')) {
+        const cp = SettingsPanel.customProviders.find(p => p.id === el.provider.value);
+        if (cp) {
+          el.apiKey.value = cp.apiKey || '';
+          el.baseUrl.value = cp.baseUrl || '';
+          el.modelName.value = cp.modelName || '';
+        }
+      } else {
+        const pc = SettingsPanel.providerConfigs[el.provider.value];
+        if (pc) {
+          el.apiKey.value = pc.apiKey || '';
+          el.modelName.value = pc.modelName || '';
+        }
       }
     });
 
@@ -144,6 +155,7 @@ const SettingsPanel = (() => {
       // Parse custom arrays
       SettingsPanel.customProviders = data.CUSTOM_PROVIDERS ? JSON.parse(data.CUSTOM_PROVIDERS) : [];
       SettingsPanel.projects = data.PROJECTS ? JSON.parse(data.PROJECTS) : [];
+      SettingsPanel.providerConfigs = data.PROVIDER_CONFIGS ? JSON.parse(data.PROVIDER_CONFIGS) : {};
       
       // Render custom providers
       document.querySelectorAll('.dyn-provider').forEach(e => e.remove());
@@ -207,6 +219,12 @@ const SettingsPanel = (() => {
         cp.apiKey = el.apiKey.value;
         cp.baseUrl = el.baseUrl.value;
         cp.modelName = el.modelName.value;
+      } else {
+        // Built-in provider
+        SettingsPanel.providerConfigs[primaryLlm] = {
+          apiKey: el.apiKey.value,
+          modelName: el.modelName.value
+        };
       }
     }
 
@@ -234,7 +252,8 @@ const SettingsPanel = (() => {
       SSH_KEY_PATH: el.sshKeyPath.value,
       SANDBOX_ROOT: el.sandboxRoot.value,
       CUSTOM_PROVIDERS: JSON.stringify(SettingsPanel.customProviders),
-      PROJECTS: JSON.stringify(SettingsPanel.projects)
+      PROJECTS: JSON.stringify(SettingsPanel.projects),
+      PROVIDER_CONFIGS: JSON.stringify(SettingsPanel.providerConfigs)
     };
 
     try {

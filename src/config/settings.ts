@@ -22,7 +22,8 @@ export const AppSettingsSchema = z.object({
 
   // Stored as JSON strings in .env for dynamic lists
   CUSTOM_PROVIDERS: z.string().default('[]'),
-  PROJECTS: z.string().default('[]')
+  PROJECTS: z.string().default('[]'),
+  PROVIDER_CONFIGS: z.string().default('{}')
 });
 
 export type AppSettings = z.infer<typeof AppSettingsSchema>;

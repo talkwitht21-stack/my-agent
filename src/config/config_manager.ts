@@ -106,7 +106,8 @@ export class ConfigManager {
       `DATABASE_URL=file:./data/agent.db`,
       '',
       `CUSTOM_PROVIDERS='${this.settings.CUSTOM_PROVIDERS}'`,
-      `PROJECTS='${this.settings.PROJECTS}'`
+      `PROJECTS='${this.settings.PROJECTS}'`,
+      `PROVIDER_CONFIGS='${this.settings.PROVIDER_CONFIGS}'`
     ];
     writeFileSync(this.envPath, lines.join('\n') + '\n');
   }

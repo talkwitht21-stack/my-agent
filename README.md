@@ -170,8 +170,16 @@ Bạn sẽ thấy log báo hiệu hệ thống đã khởi động thành công:
 INFO | Autonomous OS Agent 2.0 running at http://0.0.0.0:8000
 ```
 
-### Bước 6: Sử dụng
+### Bước 6: Sử dụng và Thiết lập LLM trên Web UI
 Mở trình duyệt trên bất kỳ máy nào cùng mạng LAN và truy cập: `http://<IP_cua_Pi5>:8000`
+
+**Hướng dẫn nhập Provider, Model và API Key nhanh chóng:**
+1. Trên giao diện Web UI, bấm vào biểu tượng **Cài đặt (Bánh răng)** ở góc trên bên phải.
+2. Tại tab **LLM Config**, bạn có thể chọn các nhà cung cấp có sẵn (Groq, Gemini, OpenAI, DeepSeek).
+3. Nhập API Key tương ứng và Model Name (ví dụ: `llama3-70b-8192` cho Groq, hoặc `gemini-1.5-pro` cho Gemini).
+4. Hệ thống sẽ **tự động ghi nhớ** cấu hình API Key và Model của TỪNG nhà cung cấp. Lần sau khi bạn chuyển đổi qua lại giữa Groq hay Gemini, API Key sẽ tự động nhảy đúng không cần nhập lại.
+5. Nếu bạn dùng một nhà cung cấp khác (ví dụ: LM Studio local), hãy chọn **+ Add Custom Provider**, nhập Base URL (VD: `http://localhost:1234/v1`) và lưu lại. Tên cấu hình tuỳ chỉnh này cũng sẽ được lưu vĩnh viễn trong danh sách thả xuống để bạn dễ dàng chọn lại.
+6. Bấm **Save Configuration** để lưu. Mọi thay đổi đều được lưu thẳng vào file `.env` và áp dụng ngay lập tức mà không cần khởi động lại Server!
 
 ### Bước 7: Cập nhật mã nguồn (Khi có phiên bản mới)
 Nếu tác giả có cập nhật code mới, bạn cần pull code về và chạy build lại.

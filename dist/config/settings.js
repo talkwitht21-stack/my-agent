@@ -21,6 +21,7 @@ exports.AppSettingsSchema = zod_1.z.object({
     MODEL_NAME: zod_1.z.string().default('llama-3.3-70b-versatile'),
     // Stored as JSON strings in .env for dynamic lists
     CUSTOM_PROVIDERS: zod_1.z.string().default('[]'),
-    PROJECTS: zod_1.z.string().default('[]')
+    PROJECTS: zod_1.z.string().default('[]'),
+    PROVIDER_CONFIGS: zod_1.z.string().default('{}')
 });
 exports.config = exports.AppSettingsSchema.parse(process.env);
