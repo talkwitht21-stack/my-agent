@@ -192,7 +192,7 @@ Mọi thay đổi trên giao diện sẽ được hệ thống tự động lưu
 - Nhấn **Enter** để gửi.
 - Hệ thống sẽ hiển thị trạng thái xử lý (loading spinner).
 
-### 2. Human-in-the-Loop (HITL) Modal
+### 3. Human-in-the-Loop (HITL) Modal
 Nếu LLM đề xuất một lệnh nguy hiểm (Risk Score: 41-70), một Modal sẽ popup ngay giữa màn hình với hiệu ứng border đỏ/vàng nhấp nháy. Modal cung cấp:
 - **Lệnh chuẩn bị chạy.**
 - **Điểm rủi ro (Risk Score)** & Mức độ (ASK).
@@ -202,7 +202,7 @@ Nếu LLM đề xuất một lệnh nguy hiểm (Risk Score: 41-70), một Modal
 - 🟢 Nhấn **`Enter`**: Chấp thuận (Allow) - Lệnh lập tức được thực thi.
 - 🔴 Nhấn **`Escape`**: Từ chối (Deny) - Lệnh bị hủy, Agent sẽ được báo là người dùng đã từ chối.
 
-### 3. Trạng thái kết nối
+### 4. Trạng thái kết nối
 Góc phải trên cùng có chấm tròn biểu thị kết nối WebSocket:
 - 🟢 **Connected**: Bạn có thể nhận Modal HITL real-time.
 - 🔴 **Disconnected**: Mất kết nối. Hệ thống đang tự động Exponential Backoff (thử lại sau 0.5s, 1s, 2s...) để nối lại.
