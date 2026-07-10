@@ -30,6 +30,8 @@ const SettingsPanel = (() => {
     el.apiKeyInputGroup = document.getElementById('api-key-input-group');
     el.toggleKey = document.getElementById('toggle-api-key');
     el.modelName = document.getElementById('set-model-name');
+    el.modelNameSelect = document.getElementById('set-model-name-select');
+    el.modelNameInputGroup = document.getElementById('model-name-input-group');
     el.baseUrl   = document.getElementById('set-base-url');
     el.sshHost   = document.getElementById('set-ssh-host');
     el.sshPort   = document.getElementById('set-ssh-port');
@@ -54,6 +56,7 @@ const SettingsPanel = (() => {
     // Delete buttons
     el.deleteProviderBtn = document.getElementById('delete-provider-btn');
     el.deleteApiKeyBtn = document.getElementById('delete-api-key-btn');
+    el.deleteModelBtn = document.getElementById('delete-model-btn');
     el.deleteProjectBtn = document.getElementById('delete-project-btn');
 
     // In-memory state for dynamic lists
@@ -82,8 +85,9 @@ const SettingsPanel = (() => {
       // Show delete provider button if it's a custom provider
       el.deleteProviderBtn.classList.toggle('hidden', !el.provider.value.startsWith('custom_'));
 
-      // Render saved API keys for this provider
+      // Render saved API keys and models for this provider
       renderSavedKeysDropdown(el.provider.value);
+      renderSavedModelsDropdown(el.provider.value);
 
       // Auto-fill if selecting an existing custom provider or built-in provider
       if (el.provider.value === '_add_custom_') {
@@ -91,15 +95,7 @@ const SettingsPanel = (() => {
       } else if (el.provider.value.startsWith('custom_')) {
         const cp = SettingsPanel.customProviders.find(p => p.id === el.provider.value);
         if (cp) {
-          el.apiKey.value = cp.apiKey || '';
           el.baseUrl.value = cp.baseUrl || '';
-          el.modelName.value = cp.modelName || '';
-        }
-      } else {
-        const pc = SettingsPanel.providerConfigs[el.provider.value];
-        if (pc) {
-          el.apiKey.value = pc.apiKey || '';
-          el.modelName.value = pc.modelName || '';
         }
       }
     });
@@ -109,6 +105,13 @@ const SettingsPanel = (() => {
       el.apiKeyInputGroup.classList.toggle('hidden', !isNew);
       el.deleteApiKeyBtn.classList.toggle('hidden', isNew);
       el.apiKey.value = isNew ? '' : el.apiKeySelect.value;
+    });
+
+    el.modelNameSelect.addEventListener('change', () => {
+      const isNew = el.modelNameSelect.value === '_new_';
+      el.modelNameInputGroup.classList.toggle('hidden', !isNew);
+      el.deleteModelBtn.classList.toggle('hidden', isNew);
+      el.modelName.value = isNew ? '' : el.modelNameSelect.value;
     });
 
     el.projectSelect.addEventListener('change', () => {
@@ -127,6 +130,7 @@ const SettingsPanel = (() => {
     // Delete Events
     el.deleteProviderBtn.addEventListener('click', deleteProvider);
     el.deleteApiKeyBtn.addEventListener('click', deleteApiKey);
+    el.deleteModelBtn.addEventListener('click', deleteModel);
     el.deleteProjectBtn.addEventListener('click', deleteProject);
 
     // ESC to close
@@ -170,6 +174,38 @@ const SettingsPanel = (() => {
     }
   }
 
+  function renderSavedModelsDropdown(providerId) {
+    el.modelNameSelect.innerHTML = '<option value="_new_">+ Add New Model...</option>';
+    let models = [];
+    if (providerId.startsWith('custom_')) {
+      const cp = SettingsPanel.customProviders.find(p => p.id === providerId);
+      if (cp && cp.savedModels) models = cp.savedModels;
+      else if (cp && cp.modelName) models = [cp.modelName];
+    } else {
+      const pc = SettingsPanel.providerConfigs[providerId];
+      if (pc && pc.savedModels) models = pc.savedModels;
+      else if (pc && pc.modelName) models = [pc.modelName];
+    }
+
+    models = [...new Set(models.filter(m => m))];
+    models.forEach((m) => {
+      const opt = document.createElement('option');
+      opt.value = m;
+      opt.textContent = m;
+      el.modelNameSelect.insertBefore(opt, el.modelNameSelect.lastElementChild);
+    });
+
+    if (models.length > 0) {
+      el.modelNameSelect.value = models[0];
+      el.modelNameInputGroup.classList.add('hidden');
+      el.deleteModelBtn.classList.remove('hidden');
+    } else {
+      el.modelNameSelect.value = '_new_';
+      el.modelNameInputGroup.classList.remove('hidden');
+      el.deleteModelBtn.classList.add('hidden');
+    }
+  }
+
   async function deleteProvider() {
     const val = el.provider.value;
     if (!val.startsWith('custom_') || !confirm('Delete this custom provider?')) return;
@@ -209,6 +245,29 @@ const SettingsPanel = (() => {
     
     await save();
     renderSavedKeysDropdown(providerId);
+  }
+
+  async function deleteModel() {
+    const m = el.modelNameSelect.value;
+    const providerId = el.provider.value;
+    if (m === '_new_' || !confirm('Delete this Model?')) return;
+
+    if (providerId.startsWith('custom_')) {
+      const cp = SettingsPanel.customProviders.find(p => p.id === providerId);
+      if (cp && cp.savedModels) {
+        cp.savedModels = cp.savedModels.filter(k => k !== m);
+        if (cp.modelName === m) cp.modelName = cp.savedModels.length > 0 ? cp.savedModels[0] : '';
+      }
+    } else {
+      const pc = SettingsPanel.providerConfigs[providerId];
+      if (pc && pc.savedModels) {
+        pc.savedModels = pc.savedModels.filter(k => k !== m);
+        if (pc.modelName === m) pc.modelName = pc.savedModels.length > 0 ? pc.savedModels[0] : '';
+      }
+    }
+    
+    await save();
+    renderSavedModelsDropdown(providerId);
   }
 
   function toggle() {
@@ -271,6 +330,7 @@ const SettingsPanel = (() => {
       el.provider.value = data.PRIMARY_LLM || 'groq';
 
       renderSavedKeysDropdown(el.provider.value);
+      renderSavedModelsDropdown(el.provider.value);
 
       // Render custom projects
       document.querySelectorAll('.dyn-project').forEach(e => e.remove());
@@ -311,6 +371,7 @@ const SettingsPanel = (() => {
     el.saveBtn.textContent = 'Saving…';
 
     const currentKey = el.apiKeySelect.value === '_new_' ? el.apiKey.value : el.apiKeySelect.value;
+    const currentModel = el.modelNameSelect.value === '_new_' ? el.modelName.value : el.modelNameSelect.value;
 
     let primaryLlm = el.provider.value;
     if (primaryLlm === '_add_custom_') {
@@ -321,7 +382,8 @@ const SettingsPanel = (() => {
         apiKey: currentKey,
         savedKeys: currentKey ? [currentKey] : [],
         baseUrl: el.baseUrl.value,
-        modelName: el.modelName.value
+        modelName: currentModel,
+        savedModels: currentModel ? [currentModel] : []
       });
     } else {
       // Update existing custom provider if selected
@@ -330,18 +392,26 @@ const SettingsPanel = (() => {
         cp.apiKey = currentKey;
         if (!cp.savedKeys) cp.savedKeys = [];
         if (currentKey && !cp.savedKeys.includes(currentKey)) cp.savedKeys.push(currentKey);
+        
+        cp.modelName = currentModel;
+        if (!cp.savedModels) cp.savedModels = [];
+        if (currentModel && !cp.savedModels.includes(currentModel)) cp.savedModels.push(currentModel);
+        
         cp.baseUrl = el.baseUrl.value;
-        cp.modelName = el.modelName.value;
       } else {
         // Built-in provider
         if (!SettingsPanel.providerConfigs[primaryLlm]) {
-          SettingsPanel.providerConfigs[primaryLlm] = { savedKeys: [] };
+          SettingsPanel.providerConfigs[primaryLlm] = { savedKeys: [], savedModels: [] };
         }
         const pc = SettingsPanel.providerConfigs[primaryLlm];
+        
         pc.apiKey = currentKey;
         if (!pc.savedKeys) pc.savedKeys = pc.apiKey ? [pc.apiKey] : [];
         if (currentKey && !pc.savedKeys.includes(currentKey)) pc.savedKeys.push(currentKey);
-        pc.modelName = el.modelName.value;
+        
+        pc.modelName = currentModel;
+        if (!pc.savedModels) pc.savedModels = pc.modelName ? [pc.modelName] : [];
+        if (currentModel && !pc.savedModels.includes(currentModel)) pc.savedModels.push(currentModel);
       }
     }
 
@@ -361,7 +431,7 @@ const SettingsPanel = (() => {
     const payload = {
       PRIMARY_LLM: primaryLlm,
       API_KEY: currentKey,
-      MODEL_NAME: el.modelName.value,
+      MODEL_NAME: currentModel,
       BASE_URL: el.baseUrl.value || undefined,
       SSH_HOST: el.sshHost.value,
       SSH_PORT: Number(el.sshPort.value),
@@ -383,6 +453,7 @@ const SettingsPanel = (() => {
       if (data.success) {
         showToast('✅ ' + data.message, 'success');
         renderSavedKeysDropdown(primaryLlm);
+        renderSavedModelsDropdown(primaryLlm);
       } else {
         showToast('❌ ' + data.message, 'error');
       }

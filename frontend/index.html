@@ -157,8 +157,17 @@
             <button type="button" id="toggle-api-key" class="btn-icon" title="Show/Hide">👁</button>
           </div>
         </div>
-        <div class="form-group">
-          <label for="set-model-name">Model Name</label>
+        <div class="form-group" id="saved-models-group">
+          <label for="set-model-name-select">Saved Models</label>
+          <div class="input-with-toggle">
+            <select id="set-model-name-select" class="form-select">
+              <option value="_new_">+ Add New Model...</option>
+            </select>
+            <button type="button" id="delete-model-btn" class="btn-icon btn-danger-icon hidden" title="Delete Selected Model">🗑️</button>
+          </div>
+        </div>
+        <div class="form-group" id="model-name-input-group">
+          <label for="set-model-name">New Model Name</label>
           <input type="text" id="set-model-name" class="form-input" placeholder="llama-3.3-70b-versatile">
         </div>
         <div class="form-group">
