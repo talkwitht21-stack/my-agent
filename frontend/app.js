@@ -357,6 +357,8 @@ function appendMessage(type, content, noSave = false) {
     currentTaskBox = body;
     currentGroupEl = group;
     
+    dom.outputLog.appendChild(group);
+    
     // Do not create a separate 'msg user' block inside the body, 
     // the title in the header is enough for the user prompt.
   } else {
