@@ -40,17 +40,18 @@ export class TaskOrchestrator {
     const systemPrompt = `You are a strict, secure Autonomous OS Agent (like Antigravity). You can research, plan, execute, and debug.
 You MUST ALWAYS output ONLY raw JSON matching this EXACT schema without any markdown formatting, greetings, or other text:
 {
-  "action": "research" | "plan" | "execute" | "done",
-  "command": "Command to run (only for research/execute)",
-  "content": "Detailed plan, rationale, or summary (for plan/done)",
-  "is_destructive": boolean (true if command modifies system)
+  "action": "research" | "plan" | "execute" | "write_file" | "done",
+  "command": "Command to run (for research/execute) OR File path (for write_file)",
+  "content": "Detailed plan/summary (for plan/done) OR File content (for write_file)",
+  "is_destructive": boolean (true if action modifies system)
 }
 
 Guidelines:
-1. 'research': Run safe commands (ls, cat, find, etc.) to understand the environment. You can do this multiple times.
-2. 'plan': If the task is complex or you need permission, output a markdown plan in 'content'. Execution pauses until user approves.
-3. 'execute': Run commands that modify files, compile code, or install tools. If a command fails, read the error and try again. ALWAYS set is_destructive=true for these.
-4. 'done': Task is complete. Summarize what you did in 'content' to update the project context.
+1. 'research': Run safe commands (ls, cat, find, etc.) to understand the environment.
+2. 'plan': If the task is complex, output a markdown plan in 'content'. Execution pauses for user approval.
+3. 'execute': Run commands that modify the system, install tools, etc. ALWAYS set is_destructive=true.
+4. 'write_file': Safely write a multi-line file. 'command' is the file path, 'content' is the exact file content (properly escaped newlines). ALWAYS set is_destructive=true.
+5. 'done': Task is complete. Summarize in 'content'.
 
 Current Project Context:
 ${memory.getContext()}`;
@@ -136,14 +137,25 @@ ${memory.getContext()}`;
         }
 
         if (shouldExecute && toolCall.command) {
-          io.emit('task_update', { session_id: sessionId, status: 'executing', message: `Running: ${toolCall.command}` });
-          const result = await this.sandbox.execute(toolCall.command);
-          
-          const resultStr = `Exit Code: ${result.code}\nStdout:\n${result.stdout}\nStderr:\n${result.stderr}`;
-          history.push({ role: 'system', content: resultStr });
-          memory.appendHistory('system', resultStr);
-          
-          io.emit('task_update', { session_id: sessionId, status: 'completed', result: { stdout: result.stdout, stderr: result.stderr } });
+          if (toolCall.action === 'write_file') {
+            io.emit('task_update', { session_id: sessionId, status: 'executing', message: `Writing file: ${toolCall.command}` });
+            const result = await this.sandbox.writeFile(toolCall.command, toolCall.content || '');
+            
+            const resultStr = `File Write [${toolCall.command}] Exit Code: ${result.code}\nStderr:\n${result.stderr || 'Success'}`;
+            history.push({ role: 'system', content: resultStr });
+            memory.appendHistory('system', resultStr);
+            
+            io.emit('task_update', { session_id: sessionId, status: 'completed', result: { message: `File ${toolCall.command} written successfully.` } });
+          } else {
+            io.emit('task_update', { session_id: sessionId, status: 'executing', message: `Running: ${toolCall.command}` });
+            const result = await this.sandbox.execute(toolCall.command);
+            
+            const resultStr = `Exit Code: ${result.code}\nStdout:\n${result.stdout}\nStderr:\n${result.stderr}`;
+            history.push({ role: 'system', content: resultStr });
+            memory.appendHistory('system', resultStr);
+            
+            io.emit('task_update', { session_id: sessionId, status: 'completed', result: { stdout: result.stdout, stderr: result.stderr } });
+          }
         }
       }
     } catch (e: any) {

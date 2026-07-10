@@ -198,6 +198,27 @@ function createMessageElement(type, content) {
   return div;
 }
 
+function saveHistoryFromDOM() {
+  const history = [];
+  Array.from(dom.outputLog.children).forEach(el => {
+    if (el.classList.contains('msg')) {
+      const type = Array.from(el.classList).find(c => c !== 'msg');
+      const contentEl = el.querySelector('pre') || el.querySelector('span');
+      if (contentEl) history.push({ type, content: contentEl.textContent });
+    } else if (el.classList.contains('task-group')) {
+      const title = el.querySelector('.task-title').textContent;
+      history.push({ type: 'user', content: title });
+      const msgs = el.querySelectorAll('.task-content .msg');
+      msgs.forEach(m => {
+        const type = Array.from(m.classList).find(c => c !== 'msg');
+        const contentEl = m.querySelector('pre') || m.querySelector('span');
+        if (contentEl) history.push({ type, content: contentEl.textContent });
+      });
+    }
+  });
+  sessionStorage.setItem('chatHistory', JSON.stringify(history));
+}
+
 function appendMessage(type, content, noSave = false) {
   dom.emptyState.classList.add("hidden");
   
@@ -217,13 +238,35 @@ function appendMessage(type, content, noSave = false) {
     title.className = 'task-title';
     title.textContent = content;
     
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = 'btn-icon btn-danger-icon';
+    deleteBtn.title = 'Delete Task';
+    deleteBtn.innerHTML = '🗑️';
+    deleteBtn.style.marginLeft = 'auto';
+    deleteBtn.style.border = 'none';
+    deleteBtn.style.background = 'transparent';
+    deleteBtn.style.fontSize = '1rem';
+    deleteBtn.style.cursor = 'pointer';
+    
     header.appendChild(chevron);
     header.appendChild(title);
+    header.appendChild(deleteBtn);
     
     const body = document.createElement('div');
     body.className = 'task-content';
     
-    header.addEventListener('click', () => {
+    header.addEventListener('click', (e) => {
+      if (e.target === deleteBtn) {
+        if (confirm('Delete this task history?')) {
+          group.remove();
+          if (currentTaskBox === body) currentTaskBox = null;
+          saveHistoryFromDOM();
+          if (dom.outputLog.children.length === 0) {
+            dom.emptyState.classList.remove('hidden');
+          }
+        }
+        return;
+      }
       header.classList.toggle('open');
     });
     
@@ -248,9 +291,7 @@ function appendMessage(type, content, noSave = false) {
   
   if (!noSave) {
     try {
-      const history = JSON.parse(sessionStorage.getItem('chatHistory') || '[]');
-      history.push({ type, content });
-      sessionStorage.setItem('chatHistory', JSON.stringify(history));
+      saveHistoryFromDOM();
     } catch (e) {}
   }
 }

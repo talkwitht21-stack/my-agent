@@ -23,4 +23,19 @@ export class SandboxRuntime {
     
     return this.ssh.execute(wrappedCmd, resolvedPath);
   }
+
+  public async writeFile(filePath: string, content: string): Promise<ExecutionResult> {
+    const resolvedPath = this.pathValidator.resolveSafe(filePath);
+    const b64 = Buffer.from(content).toString('base64');
+    
+    let cmd = '';
+    if (this.isWindows) {
+      // In Windows, use powershell to decode base64
+      cmd = `powershell -Command "[IO.File]::WriteAllBytes('${resolvedPath}', [Convert]::FromBase64String('${b64}'))"`;
+    } else {
+      cmd = `echo "${b64}" | base64 -d > "${resolvedPath}"`;
+    }
+    
+    return this.ssh.execute(cmd, '.');
+  }
 }
