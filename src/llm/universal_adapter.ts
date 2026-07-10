@@ -41,8 +41,7 @@ export class UniversalLLMAdapter {
 
     const response = await this.client.chat.completions.create({
       model: this.modelName,
-      messages: messages,
-      response_format: { type: 'json_object' }
+      messages: messages
     });
 
     let content = response.choices[0]?.message?.content || "";
