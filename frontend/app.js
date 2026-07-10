@@ -33,12 +33,23 @@ async function loadHistory() {
     const res = await fetch("/api/history");
     const data = await res.json();
     if (data.success && data.history) {
-      appendMessage("system", "--- Lịch sử công việc trước đây ---");
-      appendMessage("system", data.history);
-      appendMessage("system", "--- Phiên làm việc mới ---");
+      appendMessage("system", "--- Lịch sử công việc trước đây ---", true);
+      appendMessage("system", data.history, true);
+      appendMessage("system", "--- Phiên làm việc mới ---", true);
     }
   } catch (e) {
     console.error("Failed to load history", e);
+  }
+  
+  // Restore session history from sessionStorage
+  try {
+    const saved = sessionStorage.getItem('chatHistory');
+    if (saved) {
+      const msgs = JSON.parse(saved);
+      msgs.forEach(m => appendMessage(m.type, m.content, true));
+    }
+  } catch (err) {
+    console.error("Failed to restore session history", err);
   }
 }
 
@@ -158,7 +169,7 @@ function riskLevel(score) {
 /* ── Output log ─────────────────────────────────────── */
 const MSG_LABELS = { user: "You", result: "Agent", error: "Error", system: "System" };
 
-function appendMessage(type, content) {
+function appendMessage(type, content, noSave = false) {
   dom.emptyState.classList.add("hidden");
   const div = document.createElement("div");
   div.className = `msg ${type}`;
@@ -177,11 +188,20 @@ function appendMessage(type, content) {
   }
   dom.outputLog.appendChild(div);
   dom.outputLog.scrollTop = dom.outputLog.scrollHeight;
+  
+  if (!noSave) {
+    try {
+      const history = JSON.parse(sessionStorage.getItem('chatHistory') || '[]');
+      history.push({ type, content });
+      sessionStorage.setItem('chatHistory', JSON.stringify(history));
+    } catch (e) {}
+  }
 }
 
 function clearOutput() {
   dom.outputLog.innerHTML = "";
   dom.emptyState.classList.remove("hidden");
+  sessionStorage.removeItem('chatHistory');
 }
 
 /* ── Keyboard shortcuts ─────────────────────────────── */
