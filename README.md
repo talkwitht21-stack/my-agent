@@ -45,19 +45,19 @@ Hệ thống được chia làm 3 cụm (nodes) độc lập để đảm bảo 
    - **Vai trò:** "Reasoning Engine".
    - **Nhiệm vụ:** Nhận ngữ cảnh từ Gateway (đã nén), suy luận và trả về JSON chứa cấu trúc Tool Call (`execute_command`).
 
----
-
 ## 🔄 Luồng thực thi chi tiết (Execution Flow)
 
-1. **User Input:** Bạn nhập yêu cầu (VD: *"Xóa các file .log cũ hơn 7 ngày trong mục logs"*) trên Web UI.
-2. **Context Compression:** Pi 5 nén lịch sử chat, ghép với System Prompt và gửi lên LLM Cloud.
-3. **Reasoning:** LLM Cloud trả về JSON quyết định sẽ chạy lệnh `find ./logs -name "*.log" -mtime +7 -delete`.
-4. **Risk Assessment:** Risk Engine trên Pi 5 chấm điểm lệnh này dựa trên các Regex Policies. Điểm rủi ro sẽ rơi vào 3 ngưỡng:
-   - 🟢 **ALLOW (0-40):** An toàn, chạy ngay.
-   - 🟡 **ASK (41-70):** Rủi ro trung bình, đẩy Modal qua WebSocket lên Web UI chờ bạn duyệt (HITL).
-   - 🔴 **DENY (71-100):** Vi phạm chính sách nghiêm trọng (VD: chứa `sudo`, `rm -rf /`), chặn ngay lập tức.
-5. **Execution:** Nếu lệnh được ALLOW hoặc bạn đã duyệt (ASK -> Allow), Pi 5 dùng `asyncssh` kết nối xuống Laptop và chạy lệnh trong Sandbox (`cd ~/AI_Sandbox && <command>`).
-6. **Audit & Return:** Kết quả (stdout, stderr, exit code) được lưu vào SQLite kèm SHA-256 hash chống sửa đổi, và hiển thị lại cho bạn.
+Hệ thống hoạt động dưới dạng **Multi-turn Autonomous Loop** (Vòng lặp đa bước tự chủ):
+
+1. **User Input:** Bạn nhập yêu cầu trên Web UI. Hệ thống tải bối cảnh cũ từ file `.agent_history.md` và `.agent_context.md` (nếu có).
+2. **Context Injection:** Pi 5 ghép lịch sử, System Prompt và bối cảnh hiện tại gửi lên LLM Cloud.
+3. **Reasoning & Action:** LLM Cloud suy luận và trả về 1 trong 4 hành động (Action):
+   - 🔍 **`research`**: Chạy lệnh an toàn (như `ls`, `cat`) để tìm hiểu dự án. Tự động chạy và nạp lại kết quả vào LLM.
+   - 📝 **`plan`**: Đề xuất kế hoạch. Sẽ kích hoạt Modal chờ bạn duyệt.
+   - ⚡ **`execute`**: Chạy lệnh can thiệp hệ thống (tạo file, biên dịch). Risk Engine sẽ kiểm duyệt và đẩy Modal xin phép bạn (HITL).
+   - ✅ **`done`**: Hoàn thành tác vụ và cập nhật bối cảnh vào `.agent_context.md`.
+4. **Tự động Fix lỗi:** Nếu bạn cho phép chạy `execute` nhưng lệnh sinh ra lỗi (ví dụ lỗi g++), kết quả lỗi sẽ được trả lại cho LLM. LLM sẽ tự động vòng lại bước `research` hoặc `execute` để tự sửa lỗi cho đến khi thành công.
+5. **Execution Logging:** Mọi hành động đều được lưu vào SQLite kèm SHA-256 hash chống sửa đổi và được nối vào file `.agent_history.md` tại thư mục Project.
 
 ---
 
@@ -180,9 +180,9 @@ Web UI được thiết kế Single-Page với Dark Theme (Glassmorphism), tập
 
 ### 1. ⚙️ Settings Panel & Server Controls
 Góc trên bên phải có nút **Cài đặt (Gear icon)**. Bấm vào đây sẽ trượt ra một ngăn (drawer) cho phép bạn quản lý:
-- **🔑 Tab LLM:** Nhập API Key, chọn Provider (Groq/Gemini/OpenAI) và Model. **Thay đổi có hiệu lực ngay lập tức** (Hot-reload) mà không cần restart server!
+- **🔑 Tab LLM:** Chọn Provider (Groq/Gemini/OpenAI/DeepSeek) hoặc chọn `+ Add Custom Provider...` để thêm nhà cung cấp tùy ý (vd OpenRouter, LMStudio). Mỗi model/provider lưu một Base URL và API Key độc lập.
 - **🖥️ Tab SSH:** Nhập IP, Port, Username, Key Path của máy Windows. Có nút **Test Connection** để thử kết nối ngay trên web.
-- **📁 Tab Project:** Thay đổi thư mục Sandbox.
+- **📁 Tab Project:** Chọn `+ Add New Project...` để quản lý nhiều thư mục Sandbox cùng lúc. Chuyển đổi siêu mượt mà không cần sửa code. Mỗi Project có bộ nhớ (history & context) riêng biệt.
 - **🍓 Tab Server:** Xem trạng thái server (Uptime, RAM, Node version). Tại đây có nút **Update & Rebuild** (tự động chạy `git pull` -> `npm install` -> `build`) và **Restart Server**.
 
 Mọi thay đổi trên giao diện sẽ được hệ thống tự động lưu vào file `.env` trên Pi.
