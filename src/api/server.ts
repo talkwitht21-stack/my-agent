@@ -147,7 +147,7 @@ app.post('/api/server/update', async (_request, reply) => {
   const cwd = path.join(__dirname, '../..');
 
   return new Promise((resolve) => {
-    const cmd = 'git pull && npm install --production && npm run build';
+    const cmd = 'git pull && npm install --production && chmod -R +x node_modules/.bin/ && npm run build';
     exec(cmd, { cwd, timeout: 120000 }, (error: any, stdout: string, stderr: string) => {
       if (error) {
         resolve({ success: false, message: `Update failed: ${error.message}`, stdout, stderr });

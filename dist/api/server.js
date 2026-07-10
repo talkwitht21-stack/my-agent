@@ -141,7 +141,7 @@ exports.app.post('/api/server/update', async (_request, reply) => {
     const { exec } = require('child_process');
     const cwd = path_1.default.join(__dirname, '../..');
     return new Promise((resolve) => {
-        const cmd = 'git pull && npm install --production && npm run build';
+        const cmd = 'git pull && npm install --production && chmod -R +x node_modules/.bin/ && npm run build';
         exec(cmd, { cwd, timeout: 120000 }, (error, stdout, stderr) => {
             if (error) {
                 resolve({ success: false, message: `Update failed: ${error.message}`, stdout, stderr });
