@@ -12,6 +12,14 @@ class TaskOrchestrator {
         this.riskEngine = riskEngine;
         this.sandbox = sandbox;
     }
+    /** Hot-reload: replace LLM adapter instance */
+    setLLM(newLLM) {
+        this.llm = newLLM;
+    }
+    /** Hot-reload: replace Sandbox runtime instance */
+    setSandbox(newSandbox) {
+        this.sandbox = newSandbox;
+    }
     async executeTask(sessionId, userMessage) {
         const io = (0, server_1.getIO)();
         io.emit('task_update', { session_id: sessionId, status: 'planning', message: 'Generating execution plan...' });

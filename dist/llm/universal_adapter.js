@@ -27,7 +27,7 @@ class UniversalLLMAdapter {
                     break;
             }
         }
-        this.modelName = modelName || 'llama3-70b-8192'; // Default to a groq model
+        this.modelName = modelName || 'llama-3.3-70b-versatile'; // Default to a groq model
         this.client = new openai_1.default({
             apiKey,
             baseURL,

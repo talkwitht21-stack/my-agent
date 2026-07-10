@@ -14,7 +14,7 @@ const dom = {
   command: $("modal-command"), reasons: $("modal-reasons"), allowBtn: $("allow-btn"), denyBtn: $("deny-btn"),
 };
 
-document.addEventListener("DOMContentLoaded", () => {
+function initApp() {
   dom.btnText = dom.submitBtn.querySelector(".btn-text");
   dom.btnSpinner = dom.submitBtn.querySelector(".btn-spinner");
   dom.statusText = dom.statusBadge.querySelector(".status-text");
@@ -25,7 +25,13 @@ document.addEventListener("DOMContentLoaded", () => {
   dom.denyBtn.addEventListener("click", () => respond("deny"));
   document.addEventListener("keydown", onKeyDown);
   connectWebSocket();
-});
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener("DOMContentLoaded", initApp);
+} else {
+  initApp();
+}
 
 /* ── Socket.io Connection ─── */
 function connectWebSocket() {

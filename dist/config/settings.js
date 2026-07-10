@@ -18,6 +18,6 @@ exports.AppSettingsSchema = zod_1.z.object({
     PRIMARY_LLM: zod_1.z.enum(['openai', 'groq', 'deepseek', 'gemini']).default('groq'),
     API_KEY: zod_1.z.string().min(1),
     BASE_URL: zod_1.z.string().optional(),
-    MODEL_NAME: zod_1.z.string().default('llama3-70b-8192')
+    MODEL_NAME: zod_1.z.string().default('llama-3.3-70b-versatile')
 });
 exports.config = exports.AppSettingsSchema.parse(process.env);

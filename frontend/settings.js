@@ -295,4 +295,8 @@ const SettingsPanel = (() => {
   return { init };
 })();
 
-document.addEventListener('DOMContentLoaded', SettingsPanel.init);
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', SettingsPanel.init);
+} else {
+  SettingsPanel.init();
+}
