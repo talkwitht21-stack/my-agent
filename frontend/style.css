@@ -72,7 +72,7 @@ kbd.hint { font-family: var(--font-mono); font-size: .7rem; color: var(--text-se
   display: flex; flex-direction: column;
 }
 #input-panel { width: 38%; min-width: 280px; gap: .75rem; }
-#output-panel { flex: 1; gap: .5rem; }
+#output-panel { flex: 1; gap: .5rem; min-height: 0; overflow: hidden; }
 .panel-header { display: flex; align-items: center; justify-content: space-between; }
 .panel-title { font-size: .85rem; text-transform: uppercase; letter-spacing: .08em; color: var(--text-sec); font-weight: 600; }
 
