@@ -172,6 +172,19 @@ INFO | Autonomous OS Agent 2.0 running at http://0.0.0.0:8000
 ### Bước 6: Sử dụng
 Mở trình duyệt trên bất kỳ máy nào cùng mạng LAN và truy cập: `http://<IP_cua_Pi5>:8000`
 
+### Bước 7: Cập nhật mã nguồn (Khi có phiên bản mới)
+Nếu tác giả có cập nhật code mới, bạn cần pull code về và chạy build lại.
+**Cách 1 (Khuyên dùng):** Cập nhật thẳng trên Web UI.
+- Mở Web UI -> Click biểu tượng Cài đặt (Bánh răng) -> Tab **Server** -> Bấm nút **Update & Rebuild**.
+
+**Cách 2:** Chạy bằng tay dưới Terminal (Raspberry Pi):
+```bash
+git pull
+npm install
+npm run build
+npm start
+```
+
 ---
 
 ## 🖥️ Hướng dẫn sử dụng Web UI
