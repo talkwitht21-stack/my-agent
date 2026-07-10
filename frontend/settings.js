@@ -26,6 +26,8 @@ const SettingsPanel = (() => {
     // Form fields
     el.provider  = document.getElementById('set-provider');
     el.apiKey    = document.getElementById('set-api-key');
+    el.apiKeySelect = document.getElementById('set-api-key-select');
+    el.apiKeyInputGroup = document.getElementById('api-key-input-group');
     el.toggleKey = document.getElementById('toggle-api-key');
     el.modelName = document.getElementById('set-model-name');
     el.baseUrl   = document.getElementById('set-base-url');
@@ -73,6 +75,9 @@ const SettingsPanel = (() => {
       updateModelHint();
       el.customProviderGroup.classList.toggle('hidden', el.provider.value !== '_add_custom_');
       
+      // Render saved API keys for this provider
+      renderSavedKeysDropdown(el.provider.value);
+
       // Auto-fill if selecting an existing custom provider or built-in provider
       if (el.provider.value === '_add_custom_') {
         // Leave as is or clear
@@ -92,6 +97,16 @@ const SettingsPanel = (() => {
       }
     });
 
+    el.apiKeySelect.addEventListener('change', () => {
+      if (el.apiKeySelect.value === '_new_') {
+        el.apiKeyInputGroup.classList.remove('hidden');
+        el.apiKey.value = '';
+      } else {
+        el.apiKeyInputGroup.classList.add('hidden');
+        el.apiKey.value = el.apiKeySelect.value;
+      }
+    });
+
     el.projectSelect.addEventListener('change', () => {
       el.customProjectGroup.classList.toggle('hidden', el.projectSelect.value !== '_add_project_');
       
@@ -107,6 +122,39 @@ const SettingsPanel = (() => {
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape' && isOpen) close();
     });
+  }
+
+  function renderSavedKeysDropdown(providerId) {
+    el.apiKeySelect.innerHTML = '<option value="_new_">+ Add New API Key...</option>';
+    let keys = [];
+    if (providerId.startsWith('custom_')) {
+      const cp = SettingsPanel.customProviders.find(p => p.id === providerId);
+      if (cp && cp.savedKeys) keys = cp.savedKeys;
+      else if (cp && cp.apiKey) keys = [cp.apiKey]; // Backwards compatibility
+    } else {
+      const pc = SettingsPanel.providerConfigs[providerId];
+      if (pc && pc.savedKeys) keys = pc.savedKeys;
+      else if (pc && pc.apiKey) keys = [pc.apiKey]; // Backwards compatibility
+    }
+
+    // Deduplicate and render
+    keys = [...new Set(keys.filter(k => k))];
+    keys.forEach((key, index) => {
+      const opt = document.createElement('option');
+      opt.value = key;
+      // Show first 4 and last 4 characters for security
+      const displayKey = key.length > 10 ? key.slice(0, 4) + '...' + key.slice(-4) : key;
+      opt.textContent = `Key ${index + 1} (${displayKey})`;
+      el.apiKeySelect.insertBefore(opt, el.apiKeySelect.lastElementChild);
+    });
+
+    if (keys.length > 0) {
+      el.apiKeySelect.value = keys[0];
+      el.apiKeyInputGroup.classList.add('hidden');
+    } else {
+      el.apiKeySelect.value = '_new_';
+      el.apiKeyInputGroup.classList.remove('hidden');
+    }
   }
 
   function toggle() {
@@ -168,6 +216,8 @@ const SettingsPanel = (() => {
       });
       el.provider.value = data.PRIMARY_LLM || 'groq';
 
+      renderSavedKeysDropdown(el.provider.value);
+
       // Render custom projects
       document.querySelectorAll('.dyn-project').forEach(e => e.remove());
       SettingsPanel.projects.forEach(p => {
@@ -202,13 +252,16 @@ const SettingsPanel = (() => {
     el.saveBtn.disabled = true;
     el.saveBtn.textContent = 'Saving…';
 
+    const currentKey = el.apiKeySelect.value === '_new_' ? el.apiKey.value : el.apiKeySelect.value;
+
     let primaryLlm = el.provider.value;
     if (primaryLlm === '_add_custom_') {
       primaryLlm = 'custom_' + Date.now();
       SettingsPanel.customProviders.push({
         id: primaryLlm,
         name: el.customProviderName.value || 'Unnamed Provider',
-        apiKey: el.apiKey.value,
+        apiKey: currentKey,
+        savedKeys: currentKey ? [currentKey] : [],
         baseUrl: el.baseUrl.value,
         modelName: el.modelName.value
       });
@@ -216,15 +269,21 @@ const SettingsPanel = (() => {
       // Update existing custom provider if selected
       const cp = SettingsPanel.customProviders.find(p => p.id === primaryLlm);
       if (cp) {
-        cp.apiKey = el.apiKey.value;
+        cp.apiKey = currentKey;
+        if (!cp.savedKeys) cp.savedKeys = [];
+        if (currentKey && !cp.savedKeys.includes(currentKey)) cp.savedKeys.push(currentKey);
         cp.baseUrl = el.baseUrl.value;
         cp.modelName = el.modelName.value;
       } else {
         // Built-in provider
-        SettingsPanel.providerConfigs[primaryLlm] = {
-          apiKey: el.apiKey.value,
-          modelName: el.modelName.value
-        };
+        if (!SettingsPanel.providerConfigs[primaryLlm]) {
+          SettingsPanel.providerConfigs[primaryLlm] = { savedKeys: [] };
+        }
+        const pc = SettingsPanel.providerConfigs[primaryLlm];
+        pc.apiKey = currentKey;
+        if (!pc.savedKeys) pc.savedKeys = pc.apiKey ? [pc.apiKey] : [];
+        if (currentKey && !pc.savedKeys.includes(currentKey)) pc.savedKeys.push(currentKey);
+        pc.modelName = el.modelName.value;
       }
     }
 
@@ -243,7 +302,7 @@ const SettingsPanel = (() => {
 
     const payload = {
       PRIMARY_LLM: primaryLlm,
-      API_KEY: el.apiKey.value,
+      API_KEY: currentKey,
       MODEL_NAME: el.modelName.value,
       BASE_URL: el.baseUrl.value || undefined,
       SSH_HOST: el.sshHost.value,

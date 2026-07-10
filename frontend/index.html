@@ -138,7 +138,13 @@
           <label for="set-custom-provider-name">Custom Provider Name</label>
           <input type="text" id="set-custom-provider-name" class="form-input" placeholder="e.g., OpenRouter">
         </div>
-        <div class="form-group">
+        <div class="form-group" id="saved-keys-group">
+          <label for="set-api-key-select">Saved API Keys</label>
+          <select id="set-api-key-select" class="form-select">
+            <option value="_new_">+ Add New API Key...</option>
+          </select>
+        </div>
+        <div class="form-group" id="api-key-input-group">
           <label for="set-api-key">API Key</label>
           <div class="input-with-toggle">
             <input type="password" id="set-api-key" class="form-input" placeholder="sk-... / gsk-... / AIza...">
