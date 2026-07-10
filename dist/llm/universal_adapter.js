@@ -48,12 +48,30 @@ class UniversalLLMAdapter {
             messages: messages,
             response_format: { type: 'json_object' }
         });
-        const content = response.choices[0]?.message?.content;
+        let content = response.choices[0]?.message?.content || "";
         if (!content) {
             throw new Error("Empty response from LLM");
         }
+        // Clean up potential markdown wrapping
+        content = content.trim();
+        if (content.startsWith('```')) {
+            const match = content.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
+            if (match)
+                content = match[1];
+        }
+        // Extract the JSON object boundaries
+        const startIdx = content.indexOf('{');
+        const endIdx = content.lastIndexOf('}');
+        if (startIdx !== -1 && endIdx !== -1) {
+            content = content.substring(startIdx, endIdx + 1);
+        }
         try {
-            const parsed = JSON.parse(content);
+            let parsed = JSON.parse(content);
+            // Handle common LLM mistakes
+            if (parsed.toolCall && typeof parsed.toolCall === 'object')
+                parsed = parsed.toolCall;
+            if (!parsed.action && parsed.Action)
+                parsed.action = parsed.Action.toLowerCase();
             return schemas_1.LLMToolCallSchema.parse(parsed);
         }
         catch (e) {

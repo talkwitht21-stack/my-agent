@@ -1,18 +1,18 @@
 /* ── Tokens ─────────────────────────────────────────── */
 :root {
-  --bg: #080c09;
-  --surface: rgba(22, 32, 24, 0.65);
-  --surface-hover: rgba(35, 50, 37, 0.8);
-  --border: rgba(255, 205, 0, 0.25);
-  --border-glow: rgba(218, 37, 29, 0.5);
-  --primary: #ffcd00;
-  --primary-dim: rgba(255, 205, 0, 0.3);
-  --success: #4caf50;
-  --warning: #ffb300;
-  --danger: #da251d;
-  --text: #f0fdf4;
-  --text-sec: #9fb3a1;
-  --radius: 14px;
+  --bg: #0a0f0c;
+  --surface: rgba(24, 31, 26, 0.7);
+  --surface-hover: rgba(34, 43, 37, 0.85);
+  --border: rgba(220, 180, 50, 0.15);
+  --border-glow: rgba(210, 45, 45, 0.3);
+  --primary: #e5b945;
+  --primary-dim: rgba(229, 185, 69, 0.2);
+  --success: #3c9d40;
+  --warning: #d99a36;
+  --danger: #c43333;
+  --text: #e8f2ea;
+  --text-sec: #8c9e90;
+  --radius: 12px;
   --font-ui: 'Inter', system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
 }
@@ -24,9 +24,9 @@ body {
   font-family: var(--font-ui);
   background: var(--bg);
   background-image: 
-    radial-gradient(circle at top left, rgba(218, 37, 29, 0.15), transparent 40%),
-    radial-gradient(circle at bottom right, rgba(76, 175, 80, 0.15), transparent 40%),
-    linear-gradient(180deg, rgba(8, 12, 9, 0.9) 0%, rgba(15, 25, 17, 0.9) 100%);
+    radial-gradient(circle at top right, rgba(196, 51, 51, 0.08), transparent 50%),
+    radial-gradient(circle at bottom left, rgba(60, 157, 64, 0.08), transparent 50%),
+    linear-gradient(135deg, #0a0f0c 0%, #111a13 100%);
   color: var(--text);
   min-height: 100vh;
   display: flex;
@@ -71,9 +71,9 @@ kbd.hint { font-family: var(--font-mono); font-size: .7rem; color: var(--text-se
   border-radius: var(--radius);
   margin: .75rem;
   padding: 1.25rem;
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255,255,255,0.05);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
   display: flex; flex-direction: column;
 }
 #input-panel { width: 38%; min-width: 280px; gap: .75rem; }
@@ -96,14 +96,18 @@ kbd.hint { font-family: var(--font-mono); font-size: .7rem; color: var(--text-se
 
 /* ── Buttons ────────────────────────────────────────── */
 .btn-primary {
-  width: 100%; padding: .7rem; border: 1px solid rgba(255, 205, 0, 0.5); border-radius: 8px; cursor: pointer;
-  background: linear-gradient(135deg, #da251d, #b81d16); color: var(--primary); font-weight: 700; font-size: .95rem;
+  width: 100%; padding: .7rem; border: 1px solid var(--border); border-radius: 8px; cursor: pointer;
+  background: rgba(196, 51, 51, 0.85); color: #fff; font-weight: 600; font-size: .9rem;
   font-family: var(--font-ui); transition: all .2s;
   display: flex; align-items: center; justify-content: center; gap: .5rem;
-  box-shadow: 0 4px 15px rgba(218, 37, 29, 0.3);
-  text-transform: uppercase; letter-spacing: 0.05em;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.2);
 }
-.btn-primary:hover { box-shadow: 0 0 20px rgba(255, 205, 0, 0.3), inset 0 0 10px rgba(255,255,255,0.1); transform: translateY(-1px); }
+.btn-primary:hover { 
+  background: rgba(210, 55, 55, 1);
+  border-color: rgba(229, 185, 69, 0.4);
+  box-shadow: 0 4px 12px var(--border-glow); 
+  color: var(--primary);
+}
 .btn-primary:active { transform: scale(.98); }
 .btn-primary:disabled { opacity: .5; cursor: not-allowed; }
 .btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--text-sec); border-radius: 6px; cursor: pointer; padding: .2rem .5rem; font-size: .75rem; transition: background .2s; }

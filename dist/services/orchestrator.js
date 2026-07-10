@@ -34,7 +34,7 @@ class TaskOrchestrator {
         history.push({ role: 'user', content: userMessage });
         memory.appendHistory('user', userMessage);
         const systemPrompt = `You are a strict, secure Autonomous OS Agent (like Antigravity). You can research, plan, execute, and debug.
-You MUST ALWAYS output ONLY JSON matching this schema:
+You MUST ALWAYS output ONLY raw JSON matching this EXACT schema without any markdown formatting, greetings, or other text:
 {
   "action": "research" | "plan" | "execute" | "done",
   "command": "Command to run (only for research/execute)",
