@@ -15,10 +15,14 @@ export const AppSettingsSchema = z.object({
   
   SANDBOX_ROOT: z.string().default('~/AI_Sandbox'),
   
-  PRIMARY_LLM: z.enum(['openai', 'groq', 'deepseek', 'gemini']).default('groq'),
+  PRIMARY_LLM: z.string().default('groq'),
   API_KEY: z.string().min(1),
   BASE_URL: z.string().optional(),
-  MODEL_NAME: z.string().default('llama-3.3-70b-versatile')
+  MODEL_NAME: z.string().default('llama-3.3-70b-versatile'),
+
+  // Stored as JSON strings in .env for dynamic lists
+  CUSTOM_PROVIDERS: z.string().default('[]'),
+  PROJECTS: z.string().default('[]')
 });
 
 export type AppSettings = z.infer<typeof AppSettingsSchema>;

@@ -33,13 +33,14 @@ class UniversalLLMAdapter {
             baseURL,
         });
     }
-    async generatePlanAndCommand(taskContext, systemPrompt) {
+    async generatePlanAndCommand(systemPrompt, history) {
+        const messages = [
+            { role: 'system', content: systemPrompt },
+            ...history
+        ];
         const response = await this.client.chat.completions.create({
             model: this.modelName,
-            messages: [
-                { role: 'system', content: systemPrompt },
-                { role: 'user', content: taskContext }
-            ],
+            messages: messages,
             response_format: { type: 'json_object' }
         });
         const content = response.choices[0]?.message?.content;
@@ -51,7 +52,7 @@ class UniversalLLMAdapter {
             return schemas_1.LLMToolCallSchema.parse(parsed);
         }
         catch (e) {
-            throw new Error(`Failed to parse LLM JSON: ${e}`);
+            throw new Error(`Failed to parse LLM JSON: ${e}. Raw response: ${content}`);
         }
     }
 }

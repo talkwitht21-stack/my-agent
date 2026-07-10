@@ -7,9 +7,10 @@ exports.TaskRequestSchema = zod_1.z.object({
     session_id: zod_1.z.string().min(1)
 });
 exports.LLMToolCallSchema = zod_1.z.object({
-    command: zod_1.z.string().describe('The bash/powershell command to execute'),
-    rationale: zod_1.z.string().describe('Why this command is needed'),
-    is_destructive: zod_1.z.boolean().describe('True if this command modifies or deletes data')
+    action: zod_1.z.enum(['research', 'plan', 'execute', 'done']).describe('The action to perform'),
+    command: zod_1.z.string().optional().describe('The bash/powershell command to execute (for research or execute)'),
+    content: zod_1.z.string().optional().describe('Detailed plan, rationale, or completion summary'),
+    is_destructive: zod_1.z.boolean().default(false).describe('True if this command modifies or deletes data')
 });
 exports.RiskSettingsSchema = zod_1.z.object({
     maxScoreAutoApprove: zod_1.z.number().default(40),

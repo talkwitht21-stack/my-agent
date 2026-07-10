@@ -4,7 +4,7 @@ import { PathValidator } from '../security/path_validator';
 export class SandboxRuntime {
   constructor(
     private ssh: SSHExecutor,
-    private pathValidator: PathValidator,
+    public pathValidator: PathValidator,
     private isWindows: boolean
   ) {}
 

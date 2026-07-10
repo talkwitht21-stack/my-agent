@@ -10,7 +10,7 @@ class RiskEngine {
     evaluate(call) {
         let score = 0;
         const reasons = [];
-        const commandLower = call.command.toLowerCase();
+        const commandLower = (call.command || '').toLowerCase();
         // 1. Destructive Flag
         if (call.is_destructive) {
             score += 40;

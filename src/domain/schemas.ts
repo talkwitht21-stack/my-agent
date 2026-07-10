@@ -8,9 +8,10 @@ export const TaskRequestSchema = z.object({
 export type TaskRequest = z.infer<typeof TaskRequestSchema>;
 
 export const LLMToolCallSchema = z.object({
-  command: z.string().describe('The bash/powershell command to execute'),
-  rationale: z.string().describe('Why this command is needed'),
-  is_destructive: z.boolean().describe('True if this command modifies or deletes data')
+  action: z.enum(['research', 'plan', 'execute', 'done']).describe('The action to perform'),
+  command: z.string().optional().describe('The bash/powershell command to execute (for research or execute)'),
+  content: z.string().optional().describe('Detailed plan, rationale, or completion summary'),
+  is_destructive: z.boolean().default(false).describe('True if this command modifies or deletes data')
 });
 
 export type LLMToolCall = z.infer<typeof LLMToolCallSchema>;

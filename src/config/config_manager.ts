@@ -101,9 +101,12 @@ export class ConfigManager {
       '',
       `PRIMARY_LLM=${this.settings.PRIMARY_LLM}`,
       `API_KEY=${this.settings.API_KEY}`,
-      this.settings.BASE_URL ? `BASE_URL=${this.settings.BASE_URL}` : '# BASE_URL=',
+      `BASE_URL=${this.settings.BASE_URL || ''}`,
       `MODEL_NAME=${this.settings.MODEL_NAME}`,
       `DATABASE_URL=file:./data/agent.db`,
+      '',
+      `CUSTOM_PROVIDERS='${this.settings.CUSTOM_PROVIDERS}'`,
+      `PROJECTS='${this.settings.PROJECTS}'`
     ];
     writeFileSync(this.envPath, lines.join('\n') + '\n');
   }

@@ -15,9 +15,12 @@ exports.AppSettingsSchema = zod_1.z.object({
     SSH_USER: zod_1.z.string(),
     SSH_KEY_PATH: zod_1.z.string().default('~/.ssh/id_ed25519'),
     SANDBOX_ROOT: zod_1.z.string().default('~/AI_Sandbox'),
-    PRIMARY_LLM: zod_1.z.enum(['openai', 'groq', 'deepseek', 'gemini']).default('groq'),
+    PRIMARY_LLM: zod_1.z.string().default('groq'),
     API_KEY: zod_1.z.string().min(1),
     BASE_URL: zod_1.z.string().optional(),
-    MODEL_NAME: zod_1.z.string().default('llama-3.3-70b-versatile')
+    MODEL_NAME: zod_1.z.string().default('llama-3.3-70b-versatile'),
+    // Stored as JSON strings in .env for dynamic lists
+    CUSTOM_PROVIDERS: zod_1.z.string().default('[]'),
+    PROJECTS: zod_1.z.string().default('[]')
 });
 exports.config = exports.AppSettingsSchema.parse(process.env);

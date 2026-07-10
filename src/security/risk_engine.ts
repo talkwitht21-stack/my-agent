@@ -7,10 +7,10 @@ export class RiskEngine {
     this.settings = settings;
   }
 
-  public evaluate(call: LLMToolCall): { score: number; level: RiskLevel; reasons: string[] } {
+  public evaluate(call: { command?: string; rationale?: string; is_destructive?: boolean }): { score: number; level: RiskLevel; reasons: string[] } {
     let score = 0;
     const reasons: string[] = [];
-    const commandLower = call.command.toLowerCase();
+    const commandLower = (call.command || '').toLowerCase();
 
     // 1. Destructive Flag
     if (call.is_destructive) {

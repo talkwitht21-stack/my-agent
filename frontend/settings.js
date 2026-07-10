@@ -41,8 +41,18 @@ const SettingsPanel = (() => {
     el.serverLog        = document.getElementById('server-log');
     el.srvUptime        = document.getElementById('srv-uptime');
     el.srvNode          = document.getElementById('srv-node');
-    el.srvPlatform      = document.getElementById('srv-platform');
     el.srvMemory        = document.getElementById('srv-memory');
+
+    // Custom UI
+    el.customProviderGroup = document.getElementById('custom-provider-group');
+    el.customProviderName = document.getElementById('set-custom-provider-name');
+    el.projectSelect = document.getElementById('set-project');
+    el.customProjectGroup = document.getElementById('custom-project-group');
+    el.customProjectName = document.getElementById('set-project-name');
+
+    // In-memory state for dynamic lists
+    SettingsPanel.customProviders = [];
+    SettingsPanel.projects = [];
 
     // Events
     el.gearBtn.addEventListener('click', toggle);
@@ -57,8 +67,30 @@ const SettingsPanel = (() => {
     el.serverUpdateBtn.addEventListener('click', serverUpdate);
     el.serverRestartBtn.addEventListener('click', serverRestart);
 
-    // Provider change → auto-fill model name hint
-    el.provider.addEventListener('change', updateModelHint);
+    // Provider change → auto-fill model name hint or show custom group
+    el.provider.addEventListener('change', () => {
+      updateModelHint();
+      el.customProviderGroup.classList.toggle('hidden', el.provider.value !== '_add_custom_');
+      
+      // Auto-fill if selecting an existing custom provider
+      const cp = SettingsPanel.customProviders.find(p => p.id === el.provider.value);
+      if (cp) {
+        el.apiKey.value = cp.apiKey || '';
+        el.baseUrl.value = cp.baseUrl || '';
+        el.modelName.value = cp.modelName || '';
+      }
+    });
+
+    el.projectSelect.addEventListener('change', () => {
+      el.customProjectGroup.classList.toggle('hidden', el.projectSelect.value !== '_add_project_');
+      
+      if (el.projectSelect.value === 'default') {
+        el.sandboxRoot.value = '~/AI_Sandbox';
+      } else {
+        const p = SettingsPanel.projects.find(p => p.id === el.projectSelect.value);
+        if (p) el.sandboxRoot.value = p.path || '';
+      }
+    });
 
     // ESC to close
     document.addEventListener('keydown', (e) => {
@@ -108,9 +140,47 @@ const SettingsPanel = (() => {
       el.sshPort.value    = data.SSH_PORT || 22;
       el.sshUser.value    = data.SSH_USER || '';
       el.sshKeyPath.value = data.SSH_KEY_PATH || '~/.ssh/id_ed25519';
+      
+      // Parse custom arrays
+      SettingsPanel.customProviders = data.CUSTOM_PROVIDERS ? JSON.parse(data.CUSTOM_PROVIDERS) : [];
+      SettingsPanel.projects = data.PROJECTS ? JSON.parse(data.PROJECTS) : [];
+      
+      // Render custom providers
+      document.querySelectorAll('.dyn-provider').forEach(e => e.remove());
+      SettingsPanel.customProviders.forEach(p => {
+        const opt = document.createElement('option');
+        opt.value = p.id;
+        opt.textContent = p.name;
+        opt.className = 'dyn-provider';
+        el.provider.insertBefore(opt, el.provider.querySelector('option[value="_add_custom_"]'));
+      });
+      el.provider.value = data.PRIMARY_LLM || 'groq';
+
+      // Render custom projects
+      document.querySelectorAll('.dyn-project').forEach(e => e.remove());
+      SettingsPanel.projects.forEach(p => {
+        const opt = document.createElement('option');
+        opt.value = p.id;
+        opt.textContent = p.name;
+        opt.className = 'dyn-project';
+        el.projectSelect.insertBefore(opt, el.projectSelect.querySelector('option[value="_add_project_"]'));
+      });
+      
+      // Try to select the project based on current sandbox root
       el.sandboxRoot.value = data.SANDBOX_ROOT || '~/AI_Sandbox';
+      const matchedProj = SettingsPanel.projects.find(p => p.path === el.sandboxRoot.value);
+      if (matchedProj) {
+        el.projectSelect.value = matchedProj.id;
+      } else if (el.sandboxRoot.value === '~/AI_Sandbox') {
+        el.projectSelect.value = 'default';
+      } else {
+        el.projectSelect.value = '_add_project_';
+        el.customProjectGroup.classList.remove('hidden');
+        el.customProjectName.value = 'Custom Loaded';
+      }
 
       updateModelHint();
+      el.customProviderGroup.classList.toggle('hidden', el.provider.value !== '_add_custom_');
     } catch (err) {
       showToast('❌ Failed to load settings: ' + err.message, 'error');
     }
@@ -120,8 +190,41 @@ const SettingsPanel = (() => {
     el.saveBtn.disabled = true;
     el.saveBtn.textContent = 'Saving…';
 
+    let primaryLlm = el.provider.value;
+    if (primaryLlm === '_add_custom_') {
+      primaryLlm = 'custom_' + Date.now();
+      SettingsPanel.customProviders.push({
+        id: primaryLlm,
+        name: el.customProviderName.value || 'Unnamed Provider',
+        apiKey: el.apiKey.value,
+        baseUrl: el.baseUrl.value,
+        modelName: el.modelName.value
+      });
+    } else {
+      // Update existing custom provider if selected
+      const cp = SettingsPanel.customProviders.find(p => p.id === primaryLlm);
+      if (cp) {
+        cp.apiKey = el.apiKey.value;
+        cp.baseUrl = el.baseUrl.value;
+        cp.modelName = el.modelName.value;
+      }
+    }
+
+    if (el.projectSelect.value === '_add_project_') {
+      const projId = 'proj_' + Date.now();
+      SettingsPanel.projects.push({
+        id: projId,
+        name: el.customProjectName.value || 'Unnamed Project',
+        path: el.sandboxRoot.value
+      });
+    } else {
+      // Update existing
+      const p = SettingsPanel.projects.find(p => p.id === el.projectSelect.value);
+      if (p) p.path = el.sandboxRoot.value;
+    }
+
     const payload = {
-      PRIMARY_LLM: el.provider.value,
+      PRIMARY_LLM: primaryLlm,
       API_KEY: el.apiKey.value,
       MODEL_NAME: el.modelName.value,
       BASE_URL: el.baseUrl.value || undefined,
@@ -130,6 +233,8 @@ const SettingsPanel = (() => {
       SSH_USER: el.sshUser.value,
       SSH_KEY_PATH: el.sshKeyPath.value,
       SANDBOX_ROOT: el.sandboxRoot.value,
+      CUSTOM_PROVIDERS: JSON.stringify(SettingsPanel.customProviders),
+      PROJECTS: JSON.stringify(SettingsPanel.projects)
     };
 
     try {

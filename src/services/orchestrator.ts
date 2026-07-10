@@ -3,6 +3,7 @@ import { RiskEngine } from '../security/risk_engine';
 import { SandboxRuntime } from '../execution/sandbox';
 import { getIO } from '../api/server';
 import { RiskLevel } from '../domain/schemas';
+import { MemoryManager } from './memory_manager';
 
 export class TaskOrchestrator {
   constructor(
@@ -23,54 +24,128 @@ export class TaskOrchestrator {
 
   public async executeTask(sessionId: string, userMessage: string): Promise<any> {
     const io = getIO();
-    io.emit('task_update', { session_id: sessionId, status: 'planning', message: 'Generating execution plan...' });
+    const memory = new MemoryManager(this.sandbox.pathValidator);
+    
+    // Setup history for this task session
+    const history: { role: 'user' | 'assistant' | 'system', content: string }[] = [];
+    
+    // Add old history if any, then append the new task
+    const pastHistory = memory.getHistory();
+    if (pastHistory) {
+      history.push({ role: 'system', content: `Previous session history:\n${pastHistory}` });
+    }
+    history.push({ role: 'user', content: userMessage });
+    memory.appendHistory('user', userMessage);
 
-    const systemPrompt = `You are a strict, secure OS agent. You will generate a JSON response to solve the user's task.
-You MUST output ONLY JSON with the following structure:
+    const systemPrompt = `You are a strict, secure Autonomous OS Agent (like Antigravity). You can research, plan, execute, and debug.
+You MUST ALWAYS output ONLY JSON matching this schema:
 {
-  "command": "The bash or powershell command to run. Keep it safe.",
-  "rationale": "Why you chose this command",
-  "is_destructive": boolean
+  "action": "research" | "plan" | "execute" | "done",
+  "command": "Command to run (only for research/execute)",
+  "content": "Detailed plan, rationale, or summary (for plan/done)",
+  "is_destructive": boolean (true if command modifies system)
 }
-Return only JSON, no markdown formatting if possible.`;
+
+Guidelines:
+1. 'research': Run safe commands (ls, cat, find, etc.) to understand the environment. You can do this multiple times.
+2. 'plan': If the task is complex or you need permission, output a markdown plan in 'content'. Execution pauses until user approves.
+3. 'execute': Run commands that modify files, compile code, or install tools. If a command fails, read the error and try again. ALWAYS set is_destructive=true for these.
+4. 'done': Task is complete. Summarize what you did in 'content' to update the project context.
+
+Current Project Context:
+${memory.getContext()}`;
+
+    io.emit('task_update', { session_id: sessionId, status: 'planning', message: 'Starting autonomous loop...' });
 
     try {
-      const plan = await this.llm.generatePlanAndCommand(userMessage, systemPrompt);
-      io.emit('task_update', { session_id: sessionId, status: 'plan_ready', result: plan });
+      while (true) {
+        // 1. Generate Action
+        const toolCall = await this.llm.generatePlanAndCommand(systemPrompt, history);
+        history.push({ role: 'assistant', content: JSON.stringify(toolCall) });
+        memory.appendHistory('agent', `Action: ${toolCall.action}\nCommand: ${toolCall.command || 'None'}\nContent: ${toolCall.content || 'None'}`);
 
-      const evaluation = this.riskEngine.evaluate(plan);
-      
-      if (evaluation.level === RiskLevel.HIGH) {
-        io.emit('task_update', { session_id: sessionId, status: 'error', message: 'Task blocked by Risk Engine (HIGH risk)' });
-        return { status: 'blocked', evaluation };
-      }
+        io.emit('task_update', { session_id: sessionId, status: 'plan_ready', result: toolCall });
 
-      if (evaluation.level === RiskLevel.MEDIUM) {
-        // HITL Workflow
-        const taskId = crypto.randomUUID();
-        io.emit('approval_request', { 
-          task_id: taskId, 
-          command: plan.command, 
-          risk_score: evaluation.score, 
-          risk_level: evaluation.level, 
-          reasons: evaluation.reasons 
+        // 2. Process Action
+        if (toolCall.action === 'done') {
+          // Update context
+          if (toolCall.content) {
+            memory.updateContext(toolCall.content);
+          }
+          io.emit('task_update', { session_id: sessionId, status: 'completed', result: { message: 'Task finished' } });
+          return { status: 'completed' };
+        }
+
+        if (toolCall.action === 'plan') {
+          // Ask for approval for the plan
+          const taskId = crypto.randomUUID();
+          io.emit('approval_request', { 
+            task_id: taskId, 
+            command: toolCall.content, 
+            risk_score: 50, 
+            risk_level: RiskLevel.MEDIUM, 
+            reasons: ["Agent proposed a plan and requires user approval to proceed."] 
+          });
+
+          const approved = await this.waitForApproval(taskId);
+          if (!approved) {
+            const msg = 'User denied the plan. Adjust your plan or ask for clarification.';
+            history.push({ role: 'system', content: msg });
+            memory.appendHistory('system', msg);
+            continue;
+          } else {
+            const msg = 'User approved the plan. Proceed with execution.';
+            history.push({ role: 'system', content: msg });
+            memory.appendHistory('system', msg);
+            continue;
+          }
+        }
+
+        // Evaluate risk for research/execute
+        const evaluation = this.riskEngine.evaluate({
+          command: toolCall.command || '',
+          rationale: toolCall.content || '',
+          is_destructive: toolCall.is_destructive
         });
+        
+        let shouldExecute = true;
 
-        // Wait for approval via WebSocket (simplified for now via a Promise)
-        const approved = await this.waitForApproval(taskId);
-        if (!approved) {
-          io.emit('task_update', { session_id: sessionId, status: 'error', message: 'Task denied by user' });
-          return { status: 'denied', evaluation };
+        if (evaluation.level === RiskLevel.HIGH) {
+          const msg = `Task blocked by Risk Engine (HIGH risk). Reasons: ${evaluation.reasons.join(', ')}`;
+          io.emit('task_update', { session_id: sessionId, status: 'error', message: msg });
+          history.push({ role: 'system', content: msg });
+          memory.appendHistory('system', msg);
+          shouldExecute = false; // LLM needs to rethink
+        } else if (toolCall.action === 'execute' || evaluation.level === RiskLevel.MEDIUM) {
+          // Execute actions ALWAYS require HITL unless we tweak it, but for now we'll trigger HITL if execute or medium risk.
+          const taskId = crypto.randomUUID();
+          io.emit('approval_request', { 
+            task_id: taskId, 
+            command: toolCall.command, 
+            risk_score: evaluation.score, 
+            risk_level: evaluation.level, 
+            reasons: evaluation.reasons.length ? evaluation.reasons : ['Execution action requested by Agent.']
+          });
+
+          shouldExecute = await this.waitForApproval(taskId);
+          if (!shouldExecute) {
+            const msg = 'Command execution denied by user.';
+            history.push({ role: 'system', content: msg });
+            memory.appendHistory('system', msg);
+          }
+        }
+
+        if (shouldExecute && toolCall.command) {
+          io.emit('task_update', { session_id: sessionId, status: 'executing', message: `Running: ${toolCall.command}` });
+          const result = await this.sandbox.execute(toolCall.command);
+          
+          const resultStr = `Exit Code: ${result.code}\nStdout:\n${result.stdout}\nStderr:\n${result.stderr}`;
+          history.push({ role: 'system', content: resultStr });
+          memory.appendHistory('system', resultStr);
+          
+          io.emit('task_update', { session_id: sessionId, status: 'completed', result: { stdout: result.stdout, stderr: result.stderr } });
         }
       }
-
-      // Execute
-      io.emit('task_update', { session_id: sessionId, status: 'executing', message: `Running command: ${plan.command}` });
-      const result = await this.sandbox.execute(plan.command);
-
-      io.emit('task_update', { session_id: sessionId, status: 'completed', result });
-      return { status: 'completed', result };
-
     } catch (e: any) {
       io.emit('task_update', { session_id: sessionId, status: 'error', message: e.message || String(e) });
       throw e;

@@ -131,7 +131,12 @@
             <option value="gemini">Google Gemini</option>
             <option value="openai">OpenAI</option>
             <option value="deepseek">DeepSeek</option>
+            <option value="_add_custom_">+ Add Custom Provider...</option>
           </select>
+        </div>
+        <div class="form-group hidden" id="custom-provider-group">
+          <label for="set-custom-provider-name">Custom Provider Name</label>
+          <input type="text" id="set-custom-provider-name" class="form-input" placeholder="e.g., OpenRouter">
         </div>
         <div class="form-group">
           <label for="set-api-key">API Key</label>
@@ -179,7 +184,18 @@
       <!-- Tab: Project -->
       <div class="settings-tab-content" data-panel="project">
         <div class="form-group">
-          <label for="set-sandbox-root">Sandbox Root</label>
+          <label for="set-project">Select Project</label>
+          <select id="set-project" class="form-select">
+            <option value="default">Default Project</option>
+            <option value="_add_project_">+ Add New Project...</option>
+          </select>
+        </div>
+        <div class="form-group hidden" id="custom-project-group">
+          <label for="set-project-name">Project Name</label>
+          <input type="text" id="set-project-name" class="form-input" placeholder="e.g., My Super App">
+        </div>
+        <div class="form-group">
+          <label for="set-sandbox-root">Sandbox Root (Absolute Path)</label>
           <input type="text" id="set-sandbox-root" class="form-input" placeholder="~/AI_Sandbox">
           <p class="form-hint">Agent sẽ bị giam lỏng (confined) trong thư mục này. Mọi lệnh chạy bên ngoài sẽ bị chặn.</p>
         </div>

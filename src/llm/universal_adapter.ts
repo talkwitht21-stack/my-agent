@@ -5,7 +5,7 @@ export class UniversalLLMAdapter {
   private client: OpenAI;
   private modelName: string;
 
-  constructor(apiKey: string, provider: 'openai' | 'groq' | 'deepseek' | 'gemini', customBaseUrl?: string, modelName?: string) {
+  constructor(apiKey: string, provider: string, customBaseUrl?: string, modelName?: string) {
     let baseURL = customBaseUrl;
     
     if (!baseURL) {
@@ -25,13 +25,18 @@ export class UniversalLLMAdapter {
     });
   }
 
-  public async generatePlanAndCommand(taskContext: string, systemPrompt: string): Promise<LLMToolCall> {
+  public async generatePlanAndCommand(
+    systemPrompt: string,
+    history: { role: 'user' | 'assistant' | 'system', content: string }[]
+  ): Promise<LLMToolCall> {
+    const messages = [
+      { role: 'system', content: systemPrompt },
+      ...history
+    ] as any[];
+
     const response = await this.client.chat.completions.create({
       model: this.modelName,
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: taskContext }
-      ],
+      messages: messages,
       response_format: { type: 'json_object' }
     });
 
@@ -44,7 +49,7 @@ export class UniversalLLMAdapter {
       const parsed = JSON.parse(content);
       return LLMToolCallSchema.parse(parsed);
     } catch (e) {
-      throw new Error(`Failed to parse LLM JSON: ${e}`);
+      throw new Error(`Failed to parse LLM JSON: ${e}. Raw response: ${content}`);
     }
   }
 }
