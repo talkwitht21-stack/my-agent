@@ -7,9 +7,9 @@ exports.TaskRequestSchema = zod_1.z.object({
     session_id: zod_1.z.string().min(1)
 });
 exports.LLMToolCallSchema = zod_1.z.object({
-    action: zod_1.z.enum(['research', 'plan', 'execute', 'done']).describe('The action to perform'),
-    command: zod_1.z.string().optional().describe('The bash/powershell command to execute (for research or execute)'),
-    content: zod_1.z.string().optional().describe('Detailed plan, rationale, or completion summary'),
+    action: zod_1.z.enum(['research', 'plan', 'execute', 'write_file', 'done']).describe('The action to perform'),
+    command: zod_1.z.string().optional().describe('The bash/powershell command to execute, OR file path for write_file'),
+    content: zod_1.z.string().optional().describe('Detailed plan, rationale, summary, OR file content for write_file'),
     is_destructive: zod_1.z.boolean().default(false).describe('True if this command modifies or deletes data')
 });
 exports.RiskSettingsSchema = zod_1.z.object({
