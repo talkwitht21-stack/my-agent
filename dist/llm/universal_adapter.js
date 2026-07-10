@@ -10,7 +10,7 @@ class UniversalLLMAdapter {
     client;
     modelName;
     constructor(apiKey, provider, customBaseUrl, modelName) {
-        let baseURL = customBaseUrl;
+        let baseURL = customBaseUrl?.trim();
         if (!baseURL) {
             switch (provider) {
                 case 'groq':
@@ -25,13 +25,18 @@ class UniversalLLMAdapter {
                 case 'openai':
                     baseURL = 'https://api.openai.com/v1';
                     break;
+                default: baseURL = undefined; // Do not pass empty string to OpenAI
             }
         }
-        this.modelName = modelName || 'llama-3.3-70b-versatile'; // Default to a groq model
-        this.client = new openai_1.default({
-            apiKey,
-            baseURL,
-        });
+        else if (baseURL && !baseURL.startsWith('http://') && !baseURL.startsWith('https://')) {
+            baseURL = 'https://' + baseURL; // Auto-prefix https if missing
+        }
+        this.modelName = modelName || 'llama-3.3-70b-versatile';
+        const clientOptions = { apiKey };
+        if (baseURL) {
+            clientOptions.baseURL = baseURL;
+        }
+        this.client = new openai_1.default(clientOptions);
     }
     async generatePlanAndCommand(systemPrompt, history) {
         const messages = [

@@ -6,7 +6,7 @@ export class UniversalLLMAdapter {
   private modelName: string;
 
   constructor(apiKey: string, provider: string, customBaseUrl?: string, modelName?: string) {
-    let baseURL = customBaseUrl;
+    let baseURL = customBaseUrl?.trim();
     
     if (!baseURL) {
       switch (provider) {
@@ -14,15 +14,20 @@ export class UniversalLLMAdapter {
         case 'deepseek': baseURL = 'https://api.deepseek.com/v1'; break;
         case 'gemini': baseURL = 'https://generativelanguage.googleapis.com/v1beta/openai/'; break;
         case 'openai': baseURL = 'https://api.openai.com/v1'; break;
+        default: baseURL = undefined; // Do not pass empty string to OpenAI
       }
+    } else if (baseURL && !baseURL.startsWith('http://') && !baseURL.startsWith('https://')) {
+      baseURL = 'https://' + baseURL; // Auto-prefix https if missing
     }
 
-    this.modelName = modelName || 'llama-3.3-70b-versatile'; // Default to a groq model
+    this.modelName = modelName || 'llama-3.3-70b-versatile';
     
-    this.client = new OpenAI({
-      apiKey,
-      baseURL,
-    });
+    const clientOptions: any = { apiKey };
+    if (baseURL) {
+      clientOptions.baseURL = baseURL;
+    }
+    
+    this.client = new OpenAI(clientOptions);
   }
 
   public async generatePlanAndCommand(
