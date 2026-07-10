@@ -168,9 +168,9 @@ function riskLevel(score) {
 
 /* ── Output log ─────────────────────────────────────── */
 const MSG_LABELS = { user: "You", result: "Agent", error: "Error", system: "System" };
+let currentTaskBox = null;
 
-function appendMessage(type, content, noSave = false) {
-  dom.emptyState.classList.add("hidden");
+function createMessageElement(type, content) {
   const div = document.createElement("div");
   div.className = `msg ${type}`;
   const label = document.createElement("div");
@@ -186,7 +186,55 @@ function appendMessage(type, content, noSave = false) {
     span.textContent = content;
     div.appendChild(span);
   }
-  dom.outputLog.appendChild(div);
+  return div;
+}
+
+function appendMessage(type, content, noSave = false) {
+  dom.emptyState.classList.add("hidden");
+  
+  if (type === 'user') {
+    // Create new task accordion group
+    const group = document.createElement('div');
+    group.className = 'task-group';
+    
+    const header = document.createElement('div');
+    header.className = 'task-header open';
+    
+    const chevron = document.createElement('span');
+    chevron.className = 'chevron';
+    chevron.innerHTML = '▶';
+    
+    const title = document.createElement('span');
+    title.className = 'task-title';
+    title.textContent = content;
+    
+    header.appendChild(chevron);
+    header.appendChild(title);
+    
+    const body = document.createElement('div');
+    body.className = 'task-content';
+    
+    header.addEventListener('click', () => {
+      header.classList.toggle('open');
+    });
+    
+    group.appendChild(header);
+    group.appendChild(body);
+    
+    dom.outputLog.appendChild(group);
+    currentTaskBox = body;
+    
+    const msgEl = createMessageElement(type, content);
+    body.appendChild(msgEl);
+  } else {
+    const msgEl = createMessageElement(type, content);
+    if (currentTaskBox && type !== 'user' && !content.includes('---')) {
+      currentTaskBox.appendChild(msgEl);
+    } else {
+      dom.outputLog.appendChild(msgEl);
+    }
+  }
+
   dom.outputLog.scrollTop = dom.outputLog.scrollHeight;
   
   if (!noSave) {
@@ -202,6 +250,7 @@ function clearOutput() {
   dom.outputLog.innerHTML = "";
   dom.emptyState.classList.remove("hidden");
   sessionStorage.removeItem('chatHistory');
+  currentTaskBox = null;
 }
 
 /* ── Keyboard shortcuts ─────────────────────────────── */
