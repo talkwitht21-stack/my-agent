@@ -119,6 +119,7 @@
         <button class="settings-tab active" data-tab="llm">🔑 LLM</button>
         <button class="settings-tab" data-tab="ssh">🖥️ SSH</button>
         <button class="settings-tab" data-tab="project">📁 Project</button>
+        <button class="settings-tab" data-tab="server">🍓 Server</button>
       </nav>
 
       <!-- Tab: LLM -->
@@ -184,6 +185,54 @@
         </div>
       </div>
 
+      <!-- Tab: Server -->
+      <div class="settings-tab-content" data-panel="server">
+        <!-- Status Card -->
+        <div class="server-status-card" id="server-status-card">
+          <div class="status-header">
+            <span class="status-indicator running"></span>
+            <span class="status-label">Server Running</span>
+          </div>
+          <div class="status-grid" id="server-status-grid">
+            <div class="status-item">
+              <span class="status-key">Uptime</span>
+              <span class="status-val" id="srv-uptime">—</span>
+            </div>
+            <div class="status-item">
+              <span class="status-key">Node.js</span>
+              <span class="status-val" id="srv-node">—</span>
+            </div>
+            <div class="status-item">
+              <span class="status-key">Platform</span>
+              <span class="status-val" id="srv-platform">—</span>
+            </div>
+            <div class="status-item">
+              <span class="status-key">Memory</span>
+              <span class="status-val" id="srv-memory">—</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Control Buttons -->
+        <div class="server-controls">
+          <button type="button" id="server-update-btn" class="btn-server update">
+            <span class="btn-server-icon">📦</span>
+            <div class="btn-server-text">
+              <strong>Update & Rebuild</strong>
+              <small>git pull → npm install → build</small>
+            </div>
+          </button>
+          <button type="button" id="server-restart-btn" class="btn-server restart">
+            <span class="btn-server-icon">🔄</span>
+            <div class="btn-server-text">
+              <strong>Restart Server</strong>
+              <small>Tắt rồi bật lại server ngay lập tức</small>
+            </div>
+          </button>
+        </div>
+        <div id="server-log" class="server-log"></div>
+      </div>
+
       <!-- Save Button -->
       <div class="settings-footer">
         <button id="settings-save-btn" class="btn-primary settings-save">💾 Save Settings</button>
@@ -195,7 +244,7 @@
   <div id="settings-toast" class="settings-toast"></div>
 
   <script src="/socket.io/socket.io.js"></script>
-  <script src="app.js?v=3.0.0"></script>
-  <script src="settings.js?v=3.0.0"></script>
+  <script src="app.js?v=3.1.0"></script>
+  <script src="settings.js?v=3.1.0"></script>
 </body>
 </html>

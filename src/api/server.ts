@@ -93,4 +93,56 @@ app.post('/api/settings/test-ssh', async (request, reply) => {
   return result;
 });
 
+// ============================================================
+// GET /api/server/status — Server info & uptime
+// ============================================================
+app.get('/api/server/status', async () => {
+  const uptime = process.uptime();
+  const hours = Math.floor(uptime / 3600);
+  const mins = Math.floor((uptime % 3600) / 60);
+  const secs = Math.floor(uptime % 60);
+  return {
+    status: 'running',
+    uptime: `${hours}h ${mins}m ${secs}s`,
+    uptimeSeconds: Math.floor(uptime),
+    nodeVersion: process.version,
+    platform: process.platform,
+    arch: process.arch,
+    memoryMB: Math.round(process.memoryUsage().rss / 1024 / 1024),
+    pid: process.pid,
+  };
+});
+
+// ============================================================
+// POST /api/server/update — Git pull + npm install + rebuild
+// ============================================================
+app.post('/api/server/update', async (_request, reply) => {
+  const { exec } = require('child_process');
+  const cwd = path.join(__dirname, '../..');
+
+  return new Promise((resolve) => {
+    const cmd = 'git pull && npm install --production && npm run build';
+    exec(cmd, { cwd, timeout: 120000 }, (error: any, stdout: string, stderr: string) => {
+      if (error) {
+        resolve({ success: false, message: `Update failed: ${error.message}`, stdout, stderr });
+      } else {
+        resolve({ success: true, message: 'Update completed successfully.', stdout, stderr });
+      }
+    });
+  });
+});
+
+// ============================================================
+// POST /api/server/restart — Schedule a graceful restart
+// ============================================================
+app.post('/api/server/restart', async () => {
+  // Respond first, then restart after a brief delay
+  setTimeout(() => {
+    app.log.info('Server restart requested via Web UI. Exiting...');
+    process.exit(0); // systemd Restart=always will bring it back
+  }, 1500);
+  return { success: true, message: 'Server restarting in 1.5s...' };
+});
+
 export const getIO = () => (app as any).io;
+

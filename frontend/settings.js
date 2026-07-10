@@ -35,6 +35,15 @@ const SettingsPanel = (() => {
     el.sshKeyPath = document.getElementById('set-ssh-key-path');
     el.sandboxRoot = document.getElementById('set-sandbox-root');
 
+    // Server tab
+    el.serverUpdateBtn  = document.getElementById('server-update-btn');
+    el.serverRestartBtn = document.getElementById('server-restart-btn');
+    el.serverLog        = document.getElementById('server-log');
+    el.srvUptime        = document.getElementById('srv-uptime');
+    el.srvNode          = document.getElementById('srv-node');
+    el.srvPlatform      = document.getElementById('srv-platform');
+    el.srvMemory        = document.getElementById('srv-memory');
+
     // Events
     el.gearBtn.addEventListener('click', toggle);
     el.overlay.addEventListener('click', (e) => {
@@ -45,6 +54,8 @@ const SettingsPanel = (() => {
     el.saveBtn.addEventListener('click', save);
     el.testSSH.addEventListener('click', testSSH);
     el.toggleKey.addEventListener('click', toggleApiKeyVisibility);
+    el.serverUpdateBtn.addEventListener('click', serverUpdate);
+    el.serverRestartBtn.addEventListener('click', serverRestart);
 
     // Provider change → auto-fill model name hint
     el.provider.addEventListener('change', updateModelHint);
@@ -80,6 +91,7 @@ const SettingsPanel = (() => {
     activeTab = tabName;
     el.tabs.forEach(t => t.classList.toggle('active', t.dataset.tab === tabName));
     el.panels.forEach(p => p.classList.toggle('active', p.dataset.panel === tabName));
+    if (tabName === 'server') loadServerStatus();
   }
 
   async function loadSettings() {
@@ -196,6 +208,88 @@ const SettingsPanel = (() => {
     el.toast._timer = setTimeout(() => {
       el.toast.className = 'settings-toast';
     }, 4000);
+  }
+
+  // ── Server Control Functions ────────────────────────
+
+  async function loadServerStatus() {
+    try {
+      const res = await fetch('/api/server/status');
+      const data = await res.json();
+      el.srvUptime.textContent = data.uptime;
+      el.srvNode.textContent = data.nodeVersion;
+      el.srvPlatform.textContent = `${data.platform} (${data.arch})`;
+      el.srvMemory.textContent = `${data.memoryMB} MB`;
+    } catch {
+      el.srvUptime.textContent = 'Offline';
+      el.srvNode.textContent = '—';
+      el.srvPlatform.textContent = '—';
+      el.srvMemory.textContent = '—';
+    }
+  }
+
+  async function serverUpdate() {
+    el.serverUpdateBtn.disabled = true;
+    el.serverUpdateBtn.querySelector('strong').textContent = 'Updating…';
+    el.serverLog.textContent = '⏳ Running: git pull && npm install && npm run build...\n';
+    el.serverLog.style.display = 'block';
+
+    try {
+      const res = await fetch('/api/server/update', { method: 'POST' });
+      const data = await res.json();
+      if (data.success) {
+        el.serverLog.textContent += '✅ ' + data.message + '\n';
+        if (data.stdout) el.serverLog.textContent += '\n' + data.stdout;
+        showToast('✅ Update completed!', 'success');
+      } else {
+        el.serverLog.textContent += '❌ ' + data.message + '\n';
+        if (data.stderr) el.serverLog.textContent += '\n' + data.stderr;
+        showToast('❌ Update failed', 'error');
+      }
+    } catch (err) {
+      el.serverLog.textContent += '❌ Network error: ' + err.message + '\n';
+      showToast('❌ Network error', 'error');
+    } finally {
+      el.serverUpdateBtn.disabled = false;
+      el.serverUpdateBtn.querySelector('strong').textContent = 'Update & Rebuild';
+    }
+  }
+
+  async function serverRestart() {
+    if (!confirm('Bạn có chắc muốn restart server? Trang sẽ tạm mất kết nối trong vài giây.')) return;
+
+    el.serverRestartBtn.disabled = true;
+    el.serverRestartBtn.querySelector('strong').textContent = 'Restarting…';
+
+    try {
+      await fetch('/api/server/restart', { method: 'POST' });
+      showToast('🔄 Server đang khởi động lại...', 'success');
+
+      // Poll until server comes back
+      setTimeout(() => pollServerReady(0), 3000);
+    } catch {
+      showToast('❌ Failed to restart', 'error');
+      el.serverRestartBtn.disabled = false;
+      el.serverRestartBtn.querySelector('strong').textContent = 'Restart Server';
+    }
+  }
+
+  function pollServerReady(attempts) {
+    if (attempts > 20) {
+      showToast('❌ Server không phản hồi sau 30s. Kiểm tra terminal Pi.', 'error');
+      el.serverRestartBtn.disabled = false;
+      el.serverRestartBtn.querySelector('strong').textContent = 'Restart Server';
+      return;
+    }
+    fetch('/api/server/status')
+      .then(r => r.json())
+      .then(() => {
+        showToast('✅ Server đã khởi động lại thành công!', 'success');
+        el.serverRestartBtn.disabled = false;
+        el.serverRestartBtn.querySelector('strong').textContent = 'Restart Server';
+        loadServerStatus();
+      })
+      .catch(() => setTimeout(() => pollServerReady(attempts + 1), 1500));
   }
 
   return { init };
