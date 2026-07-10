@@ -5,7 +5,7 @@ import path from 'path';
 import { config } from '../config/settings';
 import { TaskRequestSchema } from '../domain/schemas';
 import { TaskOrchestrator } from '../services/orchestrator';
-import { ConfigManager } from '../config/config_manager';
+import { ConfigManager, configManager } from '../config/config_manager';
 
 export const app = fastify({ logger: true });
 
@@ -111,6 +111,32 @@ app.get('/api/server/status', async () => {
     memoryMB: Math.round(process.memoryUsage().rss / 1024 / 1024),
     pid: process.pid,
   };
+});
+// ============================================================
+// GET /api/history — Retrieve project history
+// ============================================================
+app.get('/api/history', async () => {
+  try {
+    const fs = require('fs');
+    const path = require('path');
+    const os = require('os');
+    
+    // Resolve sandbox root (handle ~)
+    let sandboxRoot = configManager.getSettings().SANDBOX_ROOT;
+    if (sandboxRoot.startsWith('~')) {
+      sandboxRoot = path.join(os.homedir(), sandboxRoot.slice(1));
+    }
+    
+    const historyPath = path.join(sandboxRoot, '.agent_history.md');
+    if (fs.existsSync(historyPath)) {
+      const content = fs.readFileSync(historyPath, 'utf-8');
+      return { success: true, history: content };
+    } else {
+      return { success: true, history: '' };
+    }
+  } catch (err: any) {
+    return { success: false, message: err.message };
+  }
 });
 
 // ============================================================

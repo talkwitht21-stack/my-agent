@@ -9,6 +9,7 @@ const fastify_socket_io_1 = __importDefault(require("fastify-socket.io"));
 const static_1 = __importDefault(require("@fastify/static"));
 const path_1 = __importDefault(require("path"));
 const schemas_1 = require("../domain/schemas");
+const config_manager_1 = require("../config/config_manager");
 exports.app = (0, fastify_1.default)({ logger: true });
 // Setup Socket.io
 exports.app.register(fastify_socket_io_1.default, { cors: { origin: '*' } });
@@ -106,6 +107,32 @@ exports.app.get('/api/server/status', async () => {
         memoryMB: Math.round(process.memoryUsage().rss / 1024 / 1024),
         pid: process.pid,
     };
+});
+// ============================================================
+// GET /api/history — Retrieve project history
+// ============================================================
+exports.app.get('/api/history', async () => {
+    try {
+        const fs = require('fs');
+        const path = require('path');
+        const os = require('os');
+        // Resolve sandbox root (handle ~)
+        let sandboxRoot = config_manager_1.configManager.getSettings().SANDBOX_ROOT;
+        if (sandboxRoot.startsWith('~')) {
+            sandboxRoot = path.join(os.homedir(), sandboxRoot.slice(1));
+        }
+        const historyPath = path.join(sandboxRoot, '.agent_history.md');
+        if (fs.existsSync(historyPath)) {
+            const content = fs.readFileSync(historyPath, 'utf-8');
+            return { success: true, history: content };
+        }
+        else {
+            return { success: true, history: '' };
+        }
+    }
+    catch (err) {
+        return { success: false, message: err.message };
+    }
 });
 // ============================================================
 // POST /api/server/update — Git pull + npm install + rebuild

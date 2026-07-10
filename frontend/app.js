@@ -25,6 +25,21 @@ function initApp() {
   dom.denyBtn.addEventListener("click", () => respond("deny"));
   document.addEventListener("keydown", onKeyDown);
   connectWebSocket();
+  loadHistory();
+}
+
+async function loadHistory() {
+  try {
+    const res = await fetch("/api/history");
+    const data = await res.json();
+    if (data.success && data.history) {
+      appendMessage("system", "--- Lịch sử công việc trước đây ---");
+      appendMessage("system", data.history);
+      appendMessage("system", "--- Phiên làm việc mới ---");
+    }
+  } catch (e) {
+    console.error("Failed to load history", e);
+  }
 }
 
 if (document.readyState === 'loading') {
