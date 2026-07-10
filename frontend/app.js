@@ -128,6 +128,15 @@ function setLoading(on) {
 /* ── HITL approval modal ────────────────────────────── */
 function handleApprovalRequest(data) {
   state.pendingApproval = data.task_id;
+  
+  const autoRun = document.getElementById('auto-run-toggle').checked;
+  if (autoRun) {
+    sendApprovalResponse(data.task_id, 'allow');
+    appendMessage("system", `[Auto-Run] Automatically approved task ${data.task_id}`);
+    state.pendingApproval = null;
+    return;
+  }
+
   const score = data.risk_score ?? 0;
   const level = riskLevel(score);
   dom.riskScore.textContent = score;

@@ -44,6 +44,10 @@
           aria-describedby="input-hint"
         ></textarea>
         <p id="input-hint" class="hint-text">Press <kbd>Enter</kbd> to submit · <kbd>Shift+Enter</kbd> for newline</p>
+        <div style="display: flex; align-items: center; gap: .5rem; margin-top: .2rem; margin-bottom: .6rem;">
+          <input type="checkbox" id="auto-run-toggle" style="cursor: pointer;" checked>
+          <label for="auto-run-toggle" style="font-size: .85rem; color: var(--text-sec); cursor: pointer; user-select: none;">Auto-approve Tasks (Auto-Run)</label>
+        </div>
         <button type="submit" id="submit-btn" class="btn-primary">
           <span class="btn-text">Execute Task</span>
           <span class="btn-spinner hidden" aria-hidden="true"></span>

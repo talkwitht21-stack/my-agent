@@ -75,6 +75,7 @@ kbd.hint { font-family: var(--font-mono); font-size: .7rem; color: var(--text-se
   -webkit-backdrop-filter: blur(12px);
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
   display: flex; flex-direction: column;
+  min-height: 0;
 }
 #input-panel { width: 38%; min-width: 280px; gap: .75rem; }
 #output-panel { flex: 1; gap: .5rem; min-height: 0; overflow: hidden; }
