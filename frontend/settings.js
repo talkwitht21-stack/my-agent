@@ -324,6 +324,7 @@ const SettingsPanel = (() => {
       const data = await res.json();
       if (data.success) {
         showToast('✅ ' + data.message, 'success');
+        renderSavedKeysDropdown(primaryLlm);
       } else {
         showToast('❌ ' + data.message, 'error');
       }
