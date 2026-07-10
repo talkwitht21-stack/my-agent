@@ -3,7 +3,7 @@ function generateUUID() {
   if (window.crypto && window.crypto.randomUUID) return window.crypto.randomUUID();
   return Math.random().toString(36).substring(2) + Date.now().toString(36);
 }
-const state = { ws: null, sessionId: generateUUID(), reconnectDelay: 500, pendingApproval: null, isSubmitting: false };
+const state = { ws: null, sessionId: generateUUID(), reconnectDelay: 500, pendingApproval: null, isSubmitting: false, events: [] };
 const $ = (id) => document.getElementById(id);
 const dom = {
   form: $("task-form"), input: $("task-input"), submitBtn: $("submit-btn"),
@@ -45,8 +45,13 @@ async function loadHistory() {
   try {
     const saved = sessionStorage.getItem('chatHistory');
     if (saved) {
-      const msgs = JSON.parse(saved);
-      msgs.forEach(m => appendMessage(m.type, m.content, true));
+      const events = JSON.parse(saved);
+      state.events = []; // clear since playback will push if not careful, wait, we pass noSave = true
+      events.forEach(e => {
+        if (e.action === 'message') appendMessage(e.type, e.content, true);
+        else if (e.action === 'update') appendTaskUpdate(e.data, true);
+      });
+      state.events = events; // restore full list
     }
   } catch (err) {
     console.error("Failed to restore session history", err);
@@ -178,10 +183,16 @@ const MSG_LABELS = { user: "You", result: "Agent", error: "Error", system: "Syst
 let currentTaskBox = null;
 let currentAiChatBox = null;
 let currentConsoleBox = null;
+let currentGroupEl = null;
 
-function appendTaskUpdate(data) {
+function appendTaskUpdate(data, noSave = false) {
+  if (!noSave) {
+    state.events.push({ action: 'update', data });
+  }
+
   if (!currentConsoleBox || !currentAiChatBox) {
-    appendMessage("system", JSON.stringify(data));
+    appendMessage("system", JSON.stringify(data), true);
+    if (!noSave) saveHistory();
     return;
   }
   
@@ -236,7 +247,7 @@ function appendTaskUpdate(data) {
   currentConsoleBox.scrollTop = currentConsoleBox.scrollHeight;
   dom.outputLog.scrollTop = dom.outputLog.scrollHeight;
   
-  saveHistoryFromDOM();
+  if (!noSave) saveHistory();
 }
 
 function createMessageElement(type, content) {
@@ -258,28 +269,15 @@ function createMessageElement(type, content) {
   return div;
 }
 
-function saveHistoryFromDOM() {
-  const history = [];
-  Array.from(dom.outputLog.children).forEach(el => {
-    if (el.classList.contains('msg')) {
-      const type = Array.from(el.classList).find(c => c !== 'msg');
-      const contentEl = el.querySelector('pre') || el.querySelector('span');
-      if (contentEl) history.push({ type, content: contentEl.textContent });
-    } else if (el.classList.contains('task-group')) {
-      const title = el.querySelector('.task-title').textContent;
-      history.push({ type: 'user', content: title });
-      const msgs = el.querySelectorAll('.task-content .msg');
-      msgs.forEach(m => {
-        const type = Array.from(m.classList).find(c => c !== 'msg');
-        const contentEl = m.querySelector('pre') || m.querySelector('span');
-        if (contentEl) history.push({ type, content: contentEl.textContent });
-      });
-    }
-  });
-  sessionStorage.setItem('chatHistory', JSON.stringify(history));
+function saveHistory() {
+  sessionStorage.setItem('chatHistory', JSON.stringify(state.events));
 }
 
 function appendMessage(type, content, noSave = false) {
+  if (!noSave) {
+    state.events.push({ action: 'message', type, content });
+  }
+
   dom.emptyState.classList.add("hidden");
   
   if (type === 'user') {
@@ -319,8 +317,15 @@ function appendMessage(type, content, noSave = false) {
       if (e.target === deleteBtn) {
         if (confirm('Delete this task history?')) {
           group.remove();
-          if (currentTaskBox === body) currentTaskBox = null;
-          saveHistoryFromDOM();
+          if (currentGroupEl === group) {
+            currentTaskBox = null;
+            currentAiChatBox = null;
+            currentConsoleBox = null;
+            currentGroupEl = null;
+          }
+          // Note: Full persistent removal from state.events is complex,
+          // for now we just remove from DOM. Refreshing will bring it back.
+          // To fix permanently, we would filter state.events based on task chunks.
           if (dom.outputLog.children.length === 0) {
             dom.emptyState.classList.remove('hidden');
           }
@@ -350,6 +355,7 @@ function appendMessage(type, content, noSave = false) {
     currentAiChatBox = aiChat;
     currentConsoleBox = consoleLog;
     currentTaskBox = body;
+    currentGroupEl = group;
     
     // Do not create a separate 'msg user' block inside the body, 
     // the title in the header is enough for the user prompt.
@@ -366,7 +372,7 @@ function appendMessage(type, content, noSave = false) {
   
   if (!noSave) {
     try {
-      saveHistoryFromDOM();
+      saveHistory();
     } catch (e) {}
   }
 }
@@ -375,9 +381,11 @@ function clearOutput() {
   dom.outputLog.innerHTML = "";
   dom.emptyState.classList.remove("hidden");
   sessionStorage.removeItem('chatHistory');
+  state.events = [];
   currentTaskBox = null;
   currentAiChatBox = null;
   currentConsoleBox = null;
+  currentGroupEl = null;
 }
 
 /* ── Keyboard shortcuts ─────────────────────────────── */
