@@ -482,3 +482,39 @@ kbd.hint { font-family: var(--font-mono); font-size: .7rem; color: var(--text-se
   .settings-drawer { width: 100%; }
 }
 
+/* ── Split View (Task Content) ───────────────────────── */
+.task-split-view {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  margin-top: 0.5rem;
+}
+.ai-chat-section {
+  padding: 1rem;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 0.95rem;
+  line-height: 1.5;
+  border-bottom: 1px solid var(--border);
+}
+.ai-chat-section p { margin-bottom: 0.75rem; }
+.ai-chat-section p:last-child { margin-bottom: 0; }
+.ai-chat-section pre { margin: 0.5rem 0; }
+
+.console-section {
+  padding: 1rem;
+  background: #0d0d14; /* Deep dark background */
+  color: #a8b8a8; /* Muted green/grey text */
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  max-height: 400px;
+  overflow-y: auto;
+  line-height: 1.4;
+}
+.console-section .sys-msg { color: #8892b0; margin-bottom: 0.25rem; font-style: italic; }
+.console-section .cmd-run { color: #4ade80; margin-bottom: 0.25rem; font-weight: bold; }
+.console-section .cmd-out { color: #e2e8f0; margin-bottom: 0.5rem; white-space: pre-wrap; }
+.console-section .cmd-err { color: #f87171; margin-bottom: 0.5rem; white-space: pre-wrap; }

@@ -73,9 +73,7 @@ function connectWebSocket() {
   });
 
   socket.on("task_update", (data) => {
-    const label = data.status === "error" ? "error" : "result";
-    const body = data.result ? JSON.stringify(data.result, null, 2) : `Task: ${data.message || data.status}`;
-    appendMessage(label, body);
+    appendTaskUpdate(data);
   });
 
   socket.on("disconnect", () => {
@@ -178,6 +176,68 @@ function riskLevel(score) {
 /* ── Output log ─────────────────────────────────────── */
 const MSG_LABELS = { user: "You", result: "Agent", error: "Error", system: "System" };
 let currentTaskBox = null;
+let currentAiChatBox = null;
+let currentConsoleBox = null;
+
+function appendTaskUpdate(data) {
+  if (!currentConsoleBox || !currentAiChatBox) {
+    appendMessage("system", JSON.stringify(data));
+    return;
+  }
+  
+  if (data.status === 'planning') {
+    const p = document.createElement('div');
+    p.className = 'sys-msg';
+    p.textContent = `> [System] ${data.message}`;
+    currentConsoleBox.appendChild(p);
+  } else if (data.status === 'plan_ready' && data.result) {
+    if (data.result.content) {
+      currentAiChatBox.style.display = 'block';
+      const md = data.result.content.replace(/\n/g, '<br>');
+      currentAiChatBox.innerHTML += `<p><strong>Agent:</strong> ${md}</p>`;
+    }
+    if (data.result.command) {
+      const p = document.createElement('div');
+      p.className = 'cmd-run';
+      p.textContent = `$ ${data.result.command}`;
+      currentConsoleBox.appendChild(p);
+    }
+  } else if (data.status === 'executing') {
+    const p = document.createElement('div');
+    p.className = 'cmd-run';
+    p.textContent = `$ ${data.message.replace('Running: ', '').replace('Writing file: ', 'write ')}`;
+    currentConsoleBox.appendChild(p);
+  } else if (data.status === 'completed' && data.result) {
+    if (data.result.stdout) {
+      const p = document.createElement('div');
+      p.className = 'cmd-out';
+      p.textContent = data.result.stdout;
+      currentConsoleBox.appendChild(p);
+    }
+    if (data.result.stderr) {
+      const p = document.createElement('div');
+      p.className = 'cmd-err';
+      p.textContent = data.result.stderr;
+      currentConsoleBox.appendChild(p);
+    }
+    if (data.result.message) {
+      const p = document.createElement('div');
+      p.className = 'sys-msg';
+      p.textContent = `> ${data.result.message}`;
+      currentConsoleBox.appendChild(p);
+    }
+  } else if (data.status === 'error') {
+    const p = document.createElement('div');
+    p.className = 'cmd-err';
+    p.textContent = `[Error] ${data.message}`;
+    currentConsoleBox.appendChild(p);
+  }
+  
+  currentConsoleBox.scrollTop = currentConsoleBox.scrollHeight;
+  dom.outputLog.scrollTop = dom.outputLog.scrollHeight;
+  
+  saveHistoryFromDOM();
+}
 
 function createMessageElement(type, content) {
   const div = document.createElement("div");
@@ -273,11 +333,26 @@ function appendMessage(type, content, noSave = false) {
     group.appendChild(header);
     group.appendChild(body);
     
-    dom.outputLog.appendChild(group);
+    const splitView = document.createElement('div');
+    splitView.className = 'task-split-view';
+    
+    const aiChat = document.createElement('div');
+    aiChat.className = 'ai-chat-section';
+    aiChat.style.display = 'none';
+    
+    const consoleLog = document.createElement('div');
+    consoleLog.className = 'console-section';
+    
+    splitView.appendChild(aiChat);
+    splitView.appendChild(consoleLog);
+    body.appendChild(splitView);
+    
+    currentAiChatBox = aiChat;
+    currentConsoleBox = consoleLog;
     currentTaskBox = body;
     
-    const msgEl = createMessageElement(type, content);
-    body.appendChild(msgEl);
+    // Do not create a separate 'msg user' block inside the body, 
+    // the title in the header is enough for the user prompt.
   } else {
     const msgEl = createMessageElement(type, content);
     if (currentTaskBox && type !== 'user' && !content.includes('---')) {
@@ -301,6 +376,8 @@ function clearOutput() {
   dom.emptyState.classList.remove("hidden");
   sessionStorage.removeItem('chatHistory');
   currentTaskBox = null;
+  currentAiChatBox = null;
+  currentConsoleBox = null;
 }
 
 /* ── Keyboard shortcuts ─────────────────────────────── */
