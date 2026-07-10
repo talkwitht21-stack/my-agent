@@ -45,12 +45,16 @@ const SettingsPanel = (() => {
     el.srvNode          = document.getElementById('srv-node');
     el.srvMemory        = document.getElementById('srv-memory');
 
-    // Custom UI
     el.customProviderGroup = document.getElementById('custom-provider-group');
     el.customProviderName = document.getElementById('set-custom-provider-name');
     el.projectSelect = document.getElementById('set-project');
     el.customProjectGroup = document.getElementById('custom-project-group');
     el.customProjectName = document.getElementById('set-project-name');
+
+    // Delete buttons
+    el.deleteProviderBtn = document.getElementById('delete-provider-btn');
+    el.deleteApiKeyBtn = document.getElementById('delete-api-key-btn');
+    el.deleteProjectBtn = document.getElementById('delete-project-btn');
 
     // In-memory state for dynamic lists
     SettingsPanel.customProviders = [];
@@ -75,6 +79,9 @@ const SettingsPanel = (() => {
       updateModelHint();
       el.customProviderGroup.classList.toggle('hidden', el.provider.value !== '_add_custom_');
       
+      // Show delete provider button if it's a custom provider
+      el.deleteProviderBtn.classList.toggle('hidden', !el.provider.value.startsWith('custom_'));
+
       // Render saved API keys for this provider
       renderSavedKeysDropdown(el.provider.value);
 
@@ -98,16 +105,15 @@ const SettingsPanel = (() => {
     });
 
     el.apiKeySelect.addEventListener('change', () => {
-      if (el.apiKeySelect.value === '_new_') {
-        el.apiKeyInputGroup.classList.remove('hidden');
-        el.apiKey.value = '';
-      } else {
-        el.apiKeyInputGroup.classList.add('hidden');
-        el.apiKey.value = el.apiKeySelect.value;
-      }
+      const isNew = el.apiKeySelect.value === '_new_';
+      el.apiKeyInputGroup.classList.toggle('hidden', !isNew);
+      el.deleteApiKeyBtn.classList.toggle('hidden', isNew);
+      el.apiKey.value = isNew ? '' : el.apiKeySelect.value;
     });
 
     el.projectSelect.addEventListener('change', () => {
+      const isCustom = el.projectSelect.value !== 'default' && el.projectSelect.value !== '_add_project_';
+      el.deleteProjectBtn.classList.toggle('hidden', !isCustom);
       el.customProjectGroup.classList.toggle('hidden', el.projectSelect.value !== '_add_project_');
       
       if (el.projectSelect.value === 'default') {
@@ -117,6 +123,11 @@ const SettingsPanel = (() => {
         if (p) el.sandboxRoot.value = p.path || '';
       }
     });
+
+    // Delete Events
+    el.deleteProviderBtn.addEventListener('click', deleteProvider);
+    el.deleteApiKeyBtn.addEventListener('click', deleteApiKey);
+    el.deleteProjectBtn.addEventListener('click', deleteProject);
 
     // ESC to close
     document.addEventListener('keydown', (e) => {
@@ -151,10 +162,53 @@ const SettingsPanel = (() => {
     if (keys.length > 0) {
       el.apiKeySelect.value = keys[0];
       el.apiKeyInputGroup.classList.add('hidden');
+      el.deleteApiKeyBtn.classList.remove('hidden');
     } else {
       el.apiKeySelect.value = '_new_';
       el.apiKeyInputGroup.classList.remove('hidden');
+      el.deleteApiKeyBtn.classList.add('hidden');
     }
+  }
+
+  async function deleteProvider() {
+    const val = el.provider.value;
+    if (!val.startsWith('custom_') || !confirm('Delete this custom provider?')) return;
+    SettingsPanel.customProviders = SettingsPanel.customProviders.filter(p => p.id !== val);
+    el.provider.value = 'groq'; // fallback
+    await save();
+    loadSettings();
+  }
+
+  async function deleteProject() {
+    const val = el.projectSelect.value;
+    if (val === 'default' || val === '_add_project_' || !confirm('Delete this project?')) return;
+    SettingsPanel.projects = SettingsPanel.projects.filter(p => p.id !== val);
+    el.projectSelect.value = 'default';
+    await save();
+    loadSettings();
+  }
+
+  async function deleteApiKey() {
+    const key = el.apiKeySelect.value;
+    const providerId = el.provider.value;
+    if (key === '_new_' || !confirm('Delete this API Key?')) return;
+
+    if (providerId.startsWith('custom_')) {
+      const cp = SettingsPanel.customProviders.find(p => p.id === providerId);
+      if (cp && cp.savedKeys) {
+        cp.savedKeys = cp.savedKeys.filter(k => k !== key);
+        if (cp.apiKey === key) cp.apiKey = cp.savedKeys.length > 0 ? cp.savedKeys[0] : '';
+      }
+    } else {
+      const pc = SettingsPanel.providerConfigs[providerId];
+      if (pc && pc.savedKeys) {
+        pc.savedKeys = pc.savedKeys.filter(k => k !== key);
+        if (pc.apiKey === key) pc.apiKey = pc.savedKeys.length > 0 ? pc.savedKeys[0] : '';
+      }
+    }
+    
+    await save();
+    renderSavedKeysDropdown(providerId);
   }
 
   function toggle() {
@@ -243,6 +297,10 @@ const SettingsPanel = (() => {
 
       updateModelHint();
       el.customProviderGroup.classList.toggle('hidden', el.provider.value !== '_add_custom_');
+      el.deleteProviderBtn.classList.toggle('hidden', !el.provider.value.startsWith('custom_'));
+
+      const isCustomProj = el.projectSelect.value !== 'default' && el.projectSelect.value !== '_add_project_';
+      el.deleteProjectBtn.classList.toggle('hidden', !isCustomProj);
     } catch (err) {
       showToast('❌ Failed to load settings: ' + err.message, 'error');
     }

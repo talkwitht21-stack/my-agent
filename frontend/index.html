@@ -126,13 +126,16 @@
       <div class="settings-tab-content active" data-panel="llm">
         <div class="form-group">
           <label for="set-provider">Provider</label>
-          <select id="set-provider" class="form-select">
-            <option value="groq">Groq (Fast & Free)</option>
-            <option value="gemini">Google Gemini</option>
-            <option value="openai">OpenAI</option>
-            <option value="deepseek">DeepSeek</option>
-            <option value="_add_custom_">+ Add Custom Provider...</option>
-          </select>
+          <div class="input-with-toggle">
+            <select id="set-provider" class="form-select">
+              <option value="groq">Groq (Fast & Free)</option>
+              <option value="gemini">Google Gemini</option>
+              <option value="openai">OpenAI</option>
+              <option value="deepseek">DeepSeek</option>
+              <option value="_add_custom_">+ Add Custom Provider...</option>
+            </select>
+            <button type="button" id="delete-provider-btn" class="btn-icon btn-danger-icon hidden" title="Delete Custom Provider">🗑️</button>
+          </div>
         </div>
         <div class="form-group hidden" id="custom-provider-group">
           <label for="set-custom-provider-name">Custom Provider Name</label>
@@ -140,9 +143,12 @@
         </div>
         <div class="form-group" id="saved-keys-group">
           <label for="set-api-key-select">Saved API Keys</label>
-          <select id="set-api-key-select" class="form-select">
-            <option value="_new_">+ Add New API Key...</option>
-          </select>
+          <div class="input-with-toggle">
+            <select id="set-api-key-select" class="form-select">
+              <option value="_new_">+ Add New API Key...</option>
+            </select>
+            <button type="button" id="delete-api-key-btn" class="btn-icon btn-danger-icon hidden" title="Delete Selected Key">🗑️</button>
+          </div>
         </div>
         <div class="form-group" id="api-key-input-group">
           <label for="set-api-key">API Key</label>
@@ -191,10 +197,13 @@
       <div class="settings-tab-content" data-panel="project">
         <div class="form-group">
           <label for="set-project">Select Project</label>
-          <select id="set-project" class="form-select">
-            <option value="default">Default Project</option>
-            <option value="_add_project_">+ Add New Project...</option>
-          </select>
+          <div class="input-with-toggle">
+            <select id="set-project" class="form-select">
+              <option value="default">Default Project</option>
+              <option value="_add_project_">+ Add New Project...</option>
+            </select>
+            <button type="button" id="delete-project-btn" class="btn-icon btn-danger-icon hidden" title="Delete Custom Project">🗑️</button>
+          </div>
         </div>
         <div class="form-group hidden" id="custom-project-group">
           <label for="set-project-name">Project Name</label>
