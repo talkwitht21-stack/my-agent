@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=2.0.1">
+  <link rel="stylesheet" href="style.css?v=3.0.0">
 </head>
 <body>
   <header id="app-header">
@@ -17,6 +17,12 @@
       <h1>Agent <span class="accent">2.0</span></h1>
     </div>
     <div class="header-right">
+      <button id="settings-btn" class="settings-btn" title="Settings" aria-label="Open Settings">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+        </svg>
+      </button>
       <kbd class="hint" title="Ctrl+L to clear">Ctrl+L</kbd>
       <div id="connection-status" class="status-badge disconnected" role="status" aria-live="polite">
         <span class="status-dot"></span>
@@ -97,7 +103,99 @@
           Allow <kbd>↵</kbd>
         </button>
       </footer>
+    </div>
+  </div>
+
+  <!-- Settings Drawer -->
+  <div id="settings-overlay" class="settings-overlay hidden">
+    <div id="settings-drawer" class="settings-drawer">
+      <header class="settings-header">
+        <h2>⚙️ Settings</h2>
+        <button id="settings-close-btn" class="btn-ghost settings-close" aria-label="Close settings">✕</button>
+      </header>
+
+      <!-- Tab Bar -->
+      <nav class="settings-tab-bar">
+        <button class="settings-tab active" data-tab="llm">🔑 LLM</button>
+        <button class="settings-tab" data-tab="ssh">🖥️ SSH</button>
+        <button class="settings-tab" data-tab="project">📁 Project</button>
+      </nav>
+
+      <!-- Tab: LLM -->
+      <div class="settings-tab-content active" data-panel="llm">
+        <div class="form-group">
+          <label for="set-provider">Provider</label>
+          <select id="set-provider" class="form-select">
+            <option value="groq">Groq (Fast & Free)</option>
+            <option value="gemini">Google Gemini</option>
+            <option value="openai">OpenAI</option>
+            <option value="deepseek">DeepSeek</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="set-api-key">API Key</label>
+          <div class="input-with-toggle">
+            <input type="password" id="set-api-key" class="form-input" placeholder="sk-... / gsk-... / AIza...">
+            <button type="button" id="toggle-api-key" class="btn-icon" title="Show/Hide">👁</button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="set-model-name">Model Name</label>
+          <input type="text" id="set-model-name" class="form-input" placeholder="llama-3.3-70b-versatile">
+        </div>
+        <div class="form-group">
+          <label for="set-base-url">Base URL <span class="optional">(optional)</span></label>
+          <input type="text" id="set-base-url" class="form-input" placeholder="Auto-detected from provider">
+        </div>
+      </div>
+
+      <!-- Tab: SSH -->
+      <div class="settings-tab-content" data-panel="ssh">
+        <div class="form-group">
+          <label for="set-ssh-host">Host IP</label>
+          <input type="text" id="set-ssh-host" class="form-input" placeholder="192.168.1.100">
+        </div>
+        <div class="form-row">
+          <div class="form-group flex-2">
+            <label for="set-ssh-user">Username</label>
+            <input type="text" id="set-ssh-user" class="form-input" placeholder="asus">
+          </div>
+          <div class="form-group flex-1">
+            <label for="set-ssh-port">Port</label>
+            <input type="number" id="set-ssh-port" class="form-input" value="22" min="1" max="65535">
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="set-ssh-key-path">Private Key Path</label>
+          <input type="text" id="set-ssh-key-path" class="form-input" placeholder="~/.ssh/id_ed25519">
+        </div>
+        <div class="form-group">
+          <button type="button" id="test-ssh-btn" class="btn-test-ssh">🔌 Test Connection</button>
+          <div id="test-ssh-result" class="test-result"></div>
+        </div>
+      </div>
+
+      <!-- Tab: Project -->
+      <div class="settings-tab-content" data-panel="project">
+        <div class="form-group">
+          <label for="set-sandbox-root">Sandbox Root</label>
+          <input type="text" id="set-sandbox-root" class="form-input" placeholder="~/AI_Sandbox">
+          <p class="form-hint">Agent sẽ bị giam lỏng (confined) trong thư mục này. Mọi lệnh chạy bên ngoài sẽ bị chặn.</p>
+        </div>
+      </div>
+
+      <!-- Save Button -->
+      <div class="settings-footer">
+        <button id="settings-save-btn" class="btn-primary settings-save">💾 Save Settings</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast notification -->
+  <div id="settings-toast" class="settings-toast"></div>
+
   <script src="/socket.io/socket.io.js"></script>
-  <script src="app.js?v=2.0.2"></script>
+  <script src="app.js?v=3.0.0"></script>
+  <script src="settings.js?v=3.0.0"></script>
 </body>
 </html>

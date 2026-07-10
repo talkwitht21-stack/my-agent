@@ -21,4 +21,6 @@ export const AppSettingsSchema = z.object({
   MODEL_NAME: z.string().default('llama-3.3-70b-versatile')
 });
 
+export type AppSettings = z.infer<typeof AppSettingsSchema>;
+
 export const config = AppSettingsSchema.parse(process.env);

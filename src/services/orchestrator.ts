@@ -11,6 +11,16 @@ export class TaskOrchestrator {
     private sandbox: SandboxRuntime
   ) {}
 
+  /** Hot-reload: replace LLM adapter instance */
+  public setLLM(newLLM: UniversalLLMAdapter): void {
+    this.llm = newLLM;
+  }
+
+  /** Hot-reload: replace Sandbox runtime instance */
+  public setSandbox(newSandbox: SandboxRuntime): void {
+    this.sandbox = newSandbox;
+  }
+
   public async executeTask(sessionId: string, userMessage: string): Promise<any> {
     const io = getIO();
     io.emit('task_update', { session_id: sessionId, status: 'planning', message: 'Generating execution plan...' });
