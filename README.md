@@ -147,9 +147,11 @@ SANDBOX_ROOT=~/AI_Sandbox
 
 # === LLM Settings ===
 PRIMARY_LLM=groq       # Hỗ trợ openai, groq, deepseek, gemini
-MODEL_NAME=llama3-70b-8192
+# Không cần điền API_KEY và MODEL_NAME ở đây, bạn có thể thiết lập qua Settings Panel trên Web UI!
 DATABASE_URL=file:./data/agent.db
 ```
+
+> **Lưu ý:** Bạn hoàn toàn có thể bỏ qua Bước 4 và tiến hành cấu hình mọi thứ (LLM, SSH, Sandbox) trực tiếp trên giao diện **Settings Panel** của Web UI. Thay đổi sẽ được lưu ngược lại vào file `.env`!
 
 ### Bước 5: Khởi chạy Server
 
@@ -176,7 +178,16 @@ Mở trình duyệt trên bất kỳ máy nào cùng mạng LAN và truy cập: 
 
 Web UI được thiết kế Single-Page với Dark Theme (Glassmorphism), tập trung vào trải nghiệm bàn phím (Keyboard-first).
 
-### 1. Khu vực Chat & Lệnh
+### 1. ⚙️ Settings Panel & Server Controls
+Góc trên bên phải có nút **Cài đặt (Gear icon)**. Bấm vào đây sẽ trượt ra một ngăn (drawer) cho phép bạn quản lý:
+- **🔑 Tab LLM:** Nhập API Key, chọn Provider (Groq/Gemini/OpenAI) và Model. **Thay đổi có hiệu lực ngay lập tức** (Hot-reload) mà không cần restart server!
+- **🖥️ Tab SSH:** Nhập IP, Port, Username, Key Path của máy Windows. Có nút **Test Connection** để thử kết nối ngay trên web.
+- **📁 Tab Project:** Thay đổi thư mục Sandbox.
+- **🍓 Tab Server:** Xem trạng thái server (Uptime, RAM, Node version). Tại đây có nút **Update & Rebuild** (tự động chạy `git pull` -> `npm install` -> `build`) và **Restart Server**.
+
+Mọi thay đổi trên giao diện sẽ được hệ thống tự động lưu vào file `.env` trên Pi.
+
+### 2. Khu vực Chat & Lệnh
 - Ô input ở góc trái dưới: Gõ yêu cầu bằng ngôn ngữ tự nhiên (VD: "Kiểm tra xem thư mục này có bao nhiêu file ảnh").
 - Nhấn **Enter** để gửi.
 - Hệ thống sẽ hiển thị trạng thái xử lý (loading spinner).
